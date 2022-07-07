@@ -1,0 +1,182 @@
+# 支持的远程调用服务配置
+services:
+  # ******************************************
+  # Item Key: 服务标识, 如果需要本地调用请与service.yaml的服务标识保持一致
+  #   common_config: list, 指定需复用的通用配置标识, 按清单标识从后往前覆盖
+  #   service_name: str, 注册中心的服务名, 建议与服务标识保持一致
+  #   group_name: str, 所属分组, 如不传则默认为'DEFAULT_GROUP'
+  #   protocol: str, 访问协议, 例如指定http/https, 如果不设置则代表使用metadata中的标准信息
+  #   uri: str, 服务访问路径, 如果不设置则代表使用metadata中的标准信息
+  #   network: dict, 指定默认的通讯协议信息, 如果不设置则代表使用metadata中的标准信息
+  #     注: 可以根据需要放特定的通讯协议信息，例如http请求的method
+  #   headers: dict, 指定默认的报文头信息, 如果不设置则代表使用metadata中的标准信息
+  #     注: 按规范，headers的项请统一使用小写字母
+  #   local_call_first: true/false, 服务本地调用优先(相同服务名的情况可直接调用本地方法)
+  #   inf_logging: str, 使用的报文信息日志记录插件标识
+  #   formater: str, 该服务使用的请求报文转换插件标识
+  #   is_fixed_config: bool, 是否固定参数(非本地实例, 但不从注册中心获取服务信息), 默认为false
+  #   metadata: dict, 服务元数据, is_fixed_config为true时可用
+  #   ip: str, 访问主机ip, is_fixed_config为true时应设置
+  #   port: int, 访问主机端口, is_fixed_config为true时应设置
+  #   naming: str, 注册中心适配器名(application.yaml中namings配置中的适配器), 不传代表使用系统默认的命名适配器
+  # ******************************************
+  # 使用通用的报文转换适配器
+  localDemoMainFuncNoPara:
+    common_config:
+      - allCommon
+      - localDemoMainFuncCommon
+    service_name: localDemoMainFuncNoPara
+    uri: api/local_demo/common/main_func_no_para
+
+  localDemoMainFuncWithArgs:
+    common_config:
+      - allCommon
+      - localDemoMainFuncCommon
+    service_name: localDemoMainFuncWithArgs
+    uri: "api/local_demo/common/main_func_with_args/<para1>/<para2:int>"
+    network:
+      method: POST
+
+  localDemoMainFuncWithKwargs:
+    common_config:
+      - allCommon
+      - localDemoMainFuncCommon
+    service_name: localDemoMainFuncWithKwargs
+    uri: api/local_demo/common/main_func_with_kwargs
+
+  localDemoMainFuncWithParas:
+    common_config:
+      - allCommon
+      - localDemoMainFuncCommon
+    service_name: localDemoMainFuncWithParas
+    uri: "api/local_demo/common/main_func_with_paras/<para1>/<para2:int>"
+
+  localDemoMainFuncWithException:
+    common_config:
+      - allCommon
+      - localDemoMainFuncCommon
+    service_name: localDemoMainFuncWithException
+    uri: api/local_demo/common/main_func_with_exception
+    formater: HttpCommonCallerFormater
+
+  localDemoMainFuncRemoteCall:
+    common_config:
+      - allCommon
+      - localDemoMainFuncCommon
+    service_name: localDemoMainFuncRemoteCall
+    uri: "api/local_demo/common/main_func_remote_call/<para1>"
+    network:
+      method: POST
+
+  # 使用标准报文规范的报文转换适配器
+  stdLocalDemoMainFuncNoPara:
+    common_config:
+      - allCommon
+      - stdLocalDemoMainFuncCommon
+    service_name: stdLocalDemoMainFuncNoPara
+    uri: api/local_demo/std/main_func_no_para
+
+  stdLocalDemoMainFuncWithArgs:
+    common_config:
+      - allCommon
+      - stdLocalDemoMainFuncCommon
+    service_name: stdLocalDemoMainFuncWithArgs
+    uri: "api/local_demo/std/main_func_with_args/<para1>/<para2:int>"
+    network:
+      method: POST
+
+  stdLocalDemoMainFuncWithKwargs:
+    common_config:
+      - allCommon
+      - stdLocalDemoMainFuncCommon
+    service_name: stdLocalDemoMainFuncWithKwargs
+    uri: api/local_demo/std/main_func_with_kwargs
+
+  stdLocalDemoMainFuncWithParas:
+    common_config:
+      - allCommon
+      - stdLocalDemoMainFuncCommon
+    service_name: stdLocalDemoMainFuncWithParas
+    uri: "api/local_demo/std/main_func_with_paras/<para1>/<para2:int>"
+
+  stdLocalDemoMainFuncWithException:
+    common_config:
+      - allCommon
+      - stdLocalDemoMainFuncCommon
+    service_name: stdLocalDemoMainFuncWithException
+    uri: api/local_demo/std/main_func_with_exception
+
+  stdLocalDemoMainFuncRemoteCall:
+    common_config:
+      - allCommon
+      - stdLocalDemoMainFuncCommon
+    service_name: stdLocalDemoMainFuncRemoteCall
+    uri: "api/local_demo/std/main_func_remote_call/<para1>"
+    network:
+      method: POST
+
+  # 静态类函数
+  localDemoStaticClassSFuncWithParas:
+    common_config:
+      - allCommon
+      - localDemoMainFuncCommon
+    service_name: localDemoStaticClassSFuncWithParas
+    uri: "api/local_demo/common/static_class_s_func_with_paras/<para1>/<para2:int>"
+
+  localDemoStaticClassCFuncWithParas:
+    common_config:
+      - allCommon
+      - localDemoMainFuncCommon
+    service_name: localDemoStaticClassCFuncWithParas
+    uri: "api/local_demo/common/static_class_c_func_with_paras/<para1>/<para2:int>"
+
+  # 实例类函数
+  localDemoObjectClassSFuncWithParas:
+    common_config:
+      - allCommon
+      - localDemoMainFuncCommon
+    service_name: localDemoObjectClassSFuncWithParas
+    uri: "api/local_demo/common/object_class_s_func_with_paras/<para1>/<para2:int>"
+
+  localDemoObjectClassCFuncWithParas:
+    common_config:
+      - allCommon
+      - localDemoMainFuncCommon
+    service_name: localDemoObjectClassCFuncWithParas
+    uri: "api/local_demo/common/object_class_c_func_with_paras/<para1>/<para2:int>"
+
+  localDemoObjectClassMFuncWithParas:
+    common_config:
+      - allCommon
+      - localDemoMainFuncCommon
+    service_name: localDemoObjectClassMFuncWithParas
+    uri: "api/local_demo/common/object_class_m_func_with_paras/<para1>/<para2:int>"
+
+
+# 可复用的通用配置, 用于减少重复的配置
+# 注: 服务器清单的自有配置将按字典形式覆盖通用配置
+common_config:
+  allCommon:
+    group_name: ~
+    protocol: http
+    inf_logging: ServiceRemoteCallInfLogging
+    headers:
+      content-type: "application/json;charset=utf-8;"
+    ip: "127.0.0.1"
+    port: 9090
+
+  localDemoMainFuncCommon:
+    network:
+      method: GET
+    local_call_first: true
+    formater: AioHttpCommonCallerFormater
+    is_fixed_config: true
+
+  stdLocalDemoMainFuncCommon:
+    network:
+      method: GET
+    local_call_first: true
+    formater: AioHttpHiveNetStdIntfCallerFormater
+    is_fixed_config: true
+
+

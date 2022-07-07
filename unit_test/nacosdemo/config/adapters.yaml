@@ -1,0 +1,40 @@
+# 要动态加载的适配器清单
+adapters:
+  # ******************************************
+  # Item Key: 适配器唯一标识(adapter_id)
+  #   adapter_type: str, 适配器类型
+  #   plugin: dict, 插件装载信息(与插件加载的通用配置一致)
+  #     is_self_plugin: bool, 是否自有插件, 默认为False(直接从安装目录获取默认支持的插件)
+  #     path: str, 文件路径或加载模块的指定搜索路径(plugins目录下的相对路径)
+  #     module_name: str, 指定要加载的模块名, 如果path包含完整文件名可以不设置
+  #     class: str, 插件入口类名
+  #     function: str, 指定要获取的函数名
+  #     instantiation: bool, 是否要初始化类(缓存实例), 默认为False
+  #     stand_alone: bool, 是否生成新的独立实例(不缓存), 默认为False
+  #     cache_id: str, 缓存的唯一检索id, 可以设置为None
+  #       注: 可以通过cache_id的不同控制一个类可以有多个实例的情况
+  #     init_args {list} - 类实例的初始化固定参数, 以*args方式传入
+  #     init_kwargs {dict} - 类实例的初始化kv参数, 以*kwargs方式传入
+  # ******************************************
+  serial_number:
+    adapter_type: SerialNumber
+    plugin:
+      path: extend/serial_number_standalone.py
+      class: StandaloneSerialNumberAdapter
+      instantiation: True
+      init_kwargs:
+        init_config:
+          store_path: "serial_number_data"
+          overtime: 3.0
+          wait_delay: 0.1
+        init_serial_infos:
+          # 全局流水号序列, 10位
+          globSeqNum:
+            max_num: 9999999999
+          # 系统流水号序列, 12位
+          sysSeqNum:
+            max_num: 999999999999
+          # 接口流水号序列, 10位
+          infSeqNum:
+            max_num: 9999999999
+        logger_id: sysLogger

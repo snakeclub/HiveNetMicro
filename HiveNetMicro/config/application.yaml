@@ -1,0 +1,414 @@
+# 应用的配置信息(LocalDemo) - 不开启配置中心、注册中心等第三方中间件
+base_config:
+  # ******************************************
+  # sys_id: str, 系统标识(标准为5位字符)
+  # module_id: str, 模块标识(标准为3位字符)
+  # server_id: str, 服务实例序号(标准为2个字符, 建议为数字)
+  # app_name: str, 当前微服务的应用名称
+  # namespace: str, 服务注册所在的命名空间, 可以实现不同环境或项目的软隔离
+  #   注: 真实的命名空间会在后面添加环境信息, 例如'HiveNetMicroService-${env}'
+  # host: str, 外部服务访问ip或主机名, 例如"127.0.0.1"
+  # port: int, 外部服务访问端口
+  # cluster_name: str, 集群名称, 可不设置
+  # logs_path: str, 日志文件路径, 为应用启动目录的相对路径
+  # sys_logger: str, 系统级日志对象配置标识(loggers配置中可选标识)
+  # service_logger: str, 服务公共日志对象配置标识(loggers配置中可选标识)
+  # default_web_server: str, Web服务配置标识(web_servers配置中可选标识), 如果命令行不传入web服务标识, 则使用该默认标识
+  #   注: 该标识也可以设置为None, 如果为None且命令行不传入服务标识, 则代表启动一个无Web服务的后台应用
+  # after_server_start: str, 服务启动后要执行的任务配置标识(tasks配置中可选标识), 在完成服务名注册、集群注册后执行
+  # before_server_stop: str, 服务停止前要执行的任务配置标识(tasks配置中可选标识), 在取消集群注册、服务名取消注册前执行
+  # cluster_adapter: str, 集群功能适配器配置标识(clusters配置中可选标识), 不设置代表不使用集群功能
+  # naming: str, 注册中心的适配器配置标识(namings配置中可选标识), 如果不设置代表不使用注册中心
+  # tracer: str, opentracing链路追踪适配器配置标识(opentracings配置中可选标识), 如果不设置代表不开启tracing
+  # i18n: dict, 多国语言配置
+  #   lang: str, 默认的语言标识, 例如en, zh
+  #   file_prefix: str, 语言文件的前缀, 例如"sys_zh.json", "sys_en.json"
+  # caller_formaters: list, 当前服务支持的远程调用请求报文转换适配器标识清单(caller_formaters配置中可选标识)
+  # ******************************************
+  sys_id: Sys01
+  module_id: "000"
+  server_id: "01"
+  app_name: "demo"
+  namespace: HiveNetMicroService
+  host: "127.0.0.1"
+  port: 9090
+  cluster_name: ~
+
+  logs_path: logs
+  sys_logger: sysLogger
+  service_logger: serviceLogger
+  default_web_server: sanic
+  after_server_start: ~
+  before_server_stop: ~
+  cluster_adapter: ~
+  naming: ~
+  tracer: ~
+
+  i18n:
+    lang: zh
+    file_prefix: sys
+
+  caller_formaters:
+    - HttpCommonCallerFormater
+
+# ******************************************
+#  注: 以下是插件加载的通用配置说明
+#  plugin: dict, 插件装载信息
+#    is_self_plugin: bool, 是否自有插件, 默认为False(直接从安装目录获取默认支持的插件)
+#    path: str, 文件路径或加载模块的指定搜索路径(plugins目录下的相对路径)
+#    module_name: str, 指定要加载的模块名, 如果path包含完整文件名可以不设置
+#    class: str, 插件入口类名
+#    function: str, 指定要获取的函数名
+#    instantiation: bool, 是否要初始化类(缓存实例), 默认为False
+#    stand_alone: bool, 是否生成新的独立实例(不缓存), 默认为False
+#    cache_id: str, 缓存的唯一检索id, 可以设置为None
+#      注: 可以通过cache_id的不同控制一个类可以有多个实例的情况
+#    init_args {list} - 类实例的初始化固定参数, 以*args方式传入
+#    init_kwargs {dict} - 类实例的初始化kv参数, 以*kwargs方式传入
+# ******************************************
+
+# 后台任务配置清单, 可以支持配置多个后台任务
+tasks:
+  # ******************************************
+  # Item Key: 后台任务配置标识
+  #   args: list, 后台任务函数的固定入参, 以*args方式传入
+  #   kwargs: dict, 后台任务函数的kv入参, 以*kwargs方式传入
+  #   plugin: dict, 后台任务模块加载配置
+  #     注: 需要配置到获取具体函数名, 此外模块路径运行路径为tasks目录的相对路径
+  # ******************************************
+
+# 集群功能适配器的配置清单, 可以支持配置多个可选集群功能适配器
+clusters:
+  # ******************************************
+  # Item Key: 集群功能适配器配置标识
+  #   plugin: dict, 适配器模块加载配置
+  #     注: 初始化参数参考RedisClusterAdapter的定义
+  #     1、其中namespace、sys_id、module_id、server_id、app_name将直接使用base_config的参数值, 无需配置
+  #     2、after_register、after_deregister、after_own_master、after_lost_master配置为tasks的标识(配置的传入参数无效)
+  # ******************************************
+  redis_cluster:
+    plugin:
+      path: adapter/cluster_redis.py
+      class: RedisClusterAdapter
+      instantiation: true
+      init_kwargs:
+        init_config:
+          expire: 10
+          heart_beat: 4
+          enable_event: false
+          event_interval: 2
+          event_each_get: 10
+          redis_para:
+            host: "127.0.0.1"
+            port: 6379
+        logger_id: sysLogger
+
+
+# web服务器的配置清单, 可以支持配置多个可选web服务
+web_servers:
+  # ******************************************
+  # Item Key: web服务配置标识
+  #   plugin: dict, web服务适配器插件装载信息
+  #     注: 具体参考插件加载的通用配置, web服务适配器的入参较为复杂，因此只需配置类信息，初始化由应用逻辑自行处理
+  #
+  #   host: str, 绑定的主机地址, 如果不设置代表获取应用的主机ip
+  #   port: int, 服务监听的端口, 如果不设置代表获取应用的端口
+  #   logger: str, 传入的日志对象标识(loggers配置中可选标识)
+  #   wsgi_start: bool, 是否使用wsgi等第三方网关服务启动, 默认为false
+  #   server_formaters: list, 支持的报文转换适配器标识清单(server_formaters配置中可选标识)
+  #   init_config: dict, 注册中心初始化配置, 根据注册中心适配器定义设置
+  # ******************************************
+  sanic:  # Sanic类型web服务器适配器配置
+    plugin:
+      path: adapter/web_sanic.py
+      class: SanicWebAdapter
+
+    host: ~
+    port: ~
+    logger: sysLogger
+    wsgi_start: false
+
+    server_formaters:
+      - SanicCommonFormater
+
+    init_config:
+      # SanicServer运行参数字典(请参考Sanic官方文档)
+      run_config:
+        workers: 1  # 工作线程数
+        debug: false  # 是否开启debug模式(生产部署请关闭)
+        access_log: false  # 启用请求访问日志(生产部署请关闭)
+      auto_trace: false  # 是否开启http的trace功能(允许客户端TRACE请求时原样返回收到的报文内容)
+
+
+# 注册中心的配置清单, 可以支持配置多个可选注册中心
+namings:
+  # ******************************************
+  # Item Key: 注册中心配置标识
+  #   plugin: dict, 注册中心适配器插件装载信息
+  #     注: 具体参考插件加载的通用配置
+  #     init_args {list} - 类实例的初始化固定参数, 以*args方式传入
+  #     init_kwargs {dict} - 类实例的初始化kv参数, 以*kwargs方式传入
+  #       注: 注册中心适配器的入参为dict类型, 定义如下
+  #       init_config: dict, 客户端连接配置(特定类型注册中心设置中的client配置, 由各个适配器自定义)
+  #       namespace: str, 当前连接要设置的命名空间, 如果不设置代表使用应用默认的命名空间
+  #       cluster_name: str, 当前应用所在的集群名, 如果不设置代表使用应用默认的集群名
+  #       logger_id: str, 日志对象标识, 可以选择application.yaml配置中的其中一个日志对象
+  # ******************************************
+
+# opentracing的配置清单, 可以支持配置多个
+opentracings:
+  # ******************************************
+  # Item Key: 调用链(tracer)适配器标识
+  #   plugin: dict, 调用链(tracer)适配器插件装载信息
+  #     注: 具体参考插件加载的通用配置
+  #     init_args {list} - 类实例的初始化固定参数, 以*args方式传入
+  #     init_kwargs {dict} - 类实例的初始化kv参数, 以*kwargs方式传入
+  #       注: 调用链适配器的入参为dict类型, 定义如下
+  #       tracer_config: dict, 具体的Tracer实现对象的初始化参数, 根据不同的适配器自定义
+  #       trace_options: dict, 调用链追踪参数
+  #         request_tag_paras: dict, 需要从请求对象获取并放入Tags的参数字典
+  #           每个参数的key为要送入Tags的标识名, value为参数表达式
+  #         request_baggage_paras: dict, 需要从请求对象获取并放入SpanContext中Baggage传递到后续调用的参数字典
+  #           key为要送入Baggage的标识名, value为参数表达式
+  #         response_tag_paras: dict, 需要从需处理函数的返回对象获取并放入Tags的的参数字典
+  #           每个参数的key为要送入Tags的标识名, value为参数表达式
+  #         trace_all_exception: bool, 是否记录所有异常错误(默认为true), 如果为false则按照trace_exceptions所设定的异常类型进行记录
+  #         trace_exceptions: List[str], 要记录的异常错误清单, 字符格式, 包含模块名
+  #           例如: ModuleNotFoundError, module_name.ERROR
+  #           注: python原生的异常属于builtins模块, 这种情况无需写模块名
+  #         get_response_error_func: dict, 判断请求函数返回值是否错误的自定义函数插件配置, 标准的plugin模式定义
+  #         tracer_close_wait_time: float, tracer对象关闭后等待剩余调用链信息推送的等待时间, 单位为秒, 默认2.0
+  #     logger_id: str, 日志对象标识, 可以选择application.yaml配置中的其中一个日志对象
+  #
+  # 参数表达式说明
+  # 在TracerAdapter的很多配置上都可以通过参数表达式来动态获取指定的参数值
+  # 表达式的格式固定为 "参数类型:取值字符串", 以下为所有支持的参数类型和说明:
+  #   const - 固定字符串, 例如: "const:MyName"所取到的值为"MyName"
+  #   name - 获取函数完整名称, 名称中包括模块、类名, 例如"name:"所取到的值为"test_moudle.MyClass.func"
+  #   short_name - 获取函数短名称(只有函数名本身), 例如"short_name:"所取到的值为"func"
+  #   args - 获取函数入参的固定位置的传值, 例如"args:0"获取函数固定入参的第1个参数(注意对于请求函数第0个参数固定为请求对象)
+  #   kwargs - 获取函数入参的kv参数的传值, 例如"kwargs:kvname"获取key值为kvname的传值
+  #   network - 获取标准请求/响应对象的network字典的指定值(网络连接信息), 例如"network:key"获取network字典中的key对应的值
+  #   head - 获取标准请求/响应对象的协议报文头字典的指定值, 例如"head:key"获取协议报文头字典中的key对应的值
+  #   json - 获取标准请求/响应对象的报文体(JSON格式)的指定值, 取值字符串为JsonPath查找字符串, 根目录固定为对象的msg字典
+  #          例如: "json:$.key1.key2"获取请求/响应对象obj['msg'][key1][key2]的节点信息
+  # ******************************************
+
+
+# 日志对象的配置清单, 可以支持配置多个可选日志
+loggers:
+  # ******************************************
+  # Item Key: 日志配置标识
+  #   enable: bool, 是否启用该日志配置(启动服务时装载日志对象), 默认为False
+  #   logger_name: str, 指定使用config_json_str中的logger配置名
+  #     注意: 不同日志对象的logger_name必须要设置为不一样, 否则相同logger_name的日志对象写入的文件是最后一个日志对象的配置
+  #   logfile_path: str, 日志输出文件的路径(含文件名), 为base_config.logs_path的相对路径
+  #   config_json_str: str, 日志配置的json字符串, 如为None则直接使用_LOGGER_DEFAULT_JSON_STR
+  # ******************************************
+  sysLogger:
+    enable: true
+    logger_name: SysConsoleAndFile
+    logfile_path: demoLocalSys.log
+    config_json_str: |-
+      {
+        "version": 1,
+        "disable_existing_loggers": false,
+        "formatters": {
+            "simpleFormatter": {
+                "format": "[%(asctime)s.%(millisecond)s][%(levelname)s][PID:%(process)d][TID:%(thread)d][FILE:%(filename)s][FUN:%(funcName)s]%(message)s",
+                "datefmt": "%Y-%m-%d %H:%M:%S"
+            }
+        },
+        "handlers": {
+            "ConsoleHandler": {
+                "class": "logging.StreamHandler",
+                "level": "DEBUG",
+                "formatter": "simpleFormatter",
+                "stream": "ext://sys.stdout"
+            },
+            "SysFileHandler": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "level": "INFO",
+                "formatter": "simpleFormatter",
+                "filename": "{$log_file_path$}",
+                "maxBytes": 10485760,
+                "backupCount": 1000,
+                "encoding": "utf8"
+            }
+        },
+        "loggers": {
+            "Console": {
+                "level": "DEBUG",
+                "handlers": ["ConsoleHandler"]
+            },
+            "SysFile": {
+                "level": "INFO",
+                "handlers": ["SysFileHandler"],
+                "propagate": "no"
+            },
+            "SysConsoleAndFile": {
+                "level": "DEBUG",
+                "handlers": ["ConsoleHandler", "SysFileHandler"],
+                "propagate": "no"
+            }
+        },
+        "root": {
+            "level": "DEBUG",
+            "handlers": []
+        }
+      }
+
+  serviceLogger:
+    enable: true
+    logger_name: ConsoleAndFile
+    logfile_path: demoLocalService.log
+    config_json_str: ~
+
+
+# 报文信息日志记录插件, 可以支持配置多个可选插件
+inf_loggings:
+  # ******************************************
+  # Item Key: 报文信息日志记录插件配置标识
+  #   plugin: dict, 适配器插件装载信息
+  #     注: 具体参考插件加载的通用配置
+  #     init_args {list} - 类实例的初始化固定参数, 以*args方式传入
+  #     init_kwargs {dict} - 类实例的初始化kv参数, 以*kwargs方式传入
+  #       注: 适配器的入参为dict类型, 定义如下
+  #       init_config: dict, 初始化参数, 按不同适配器的入参需要传入
+  #       logger_id: str, 日志对象标识, 可以选择application.yaml配置中的其中一个日志对象
+  # ******************************************
+  CommonInfLogging:
+    plugin:
+      path: adapter/inf_logging_common.py
+      class: CommonInfLoggingAdapter
+      instantiation: True
+      init_kwargs:
+        logger_id: sysLogger
+
+  # 服务中远程调用的日志记录插件(日志标识不同)
+  ServiceRemoteCallInfLogging:
+    plugin:
+      path: adapter/inf_logging_common.py
+      class: CommonInfLoggingAdapter
+      instantiation: True
+      cache_id: ServiceRemoteCallInfLogging  # 指定cache_id生成新的实例
+      init_kwargs:
+        init_config:
+          # 使用的日志标识
+          logger: serviceLogger
+
+
+# 请求报文信息检查插件, 可以支持配置多个可选插件
+inf_checks:
+  # ******************************************
+  # Item Key: 请求报文信息检查插件配置标识
+  #   plugin: dict, 适配器插件装载信息
+  #     注: 具体参考插件加载的通用配置
+  #     init_args {list} - 类实例的初始化固定参数, 以*args方式传入
+  #     init_kwargs {dict} - 类实例的初始化kv参数, 以*kwargs方式传入
+  #       注: 适配器的入参为dict类型, 定义如下
+  #       init_config: dict, 初始化参数, 按不同适配器的入参需要传入
+  #       logger_id: str, 日志对象标识, 可以选择application.yaml配置中的其中一个日志对象
+  # ******************************************
+
+
+# 报文格式转换插件, 可以支持配置多个可选插件
+server_formaters:
+  # ******************************************
+  # Item Key: 报文格式转换插件配置标识
+  #   plugin: dict, 适配器插件装载信息
+  #     注: 具体参考插件加载的通用配置
+  #     init_args {list} - 类实例的初始化固定参数, 以*args方式传入
+  #     init_kwargs {dict} - 类实例的初始化kv参数, 以*kwargs方式传入
+  #       注: 适配器的入参为dict类型, 定义如下
+  #       init_config: dict, 初始化参数, 按不同适配器的入参需要传入
+  #       logger_id: str, 日志对象标识, 可以选择application.yaml配置中的其中一个日志对象
+  # ******************************************
+  SanicCommonFormater:
+    # 通用请求返回的Sanic服务端适配实现
+    plugin:
+      path: adapter/server_formater_sanic.py
+      class: SanicCommonServerFormater
+      instantiation: True
+      init_kwargs:
+        init_config: ~
+        logger_id: sysLogger
+
+  SanicHiveNetStdIntfFormater:
+    # HiveNet标准接口规范报文转换的Sanic服务端适配实现
+    plugin:
+      path: adapter/server_formater_sanic.py
+      class: SanicHiveNetStdIntfServerFormater
+      instantiation: True
+      init_kwargs:
+        init_config: ~
+        logger_id: sysLogger
+
+
+# 远程调用报文格式转换插件, 可以支持配置多个可选插件
+caller_formaters:
+  # ******************************************
+  # Item Key: 远程调用报文格式转换插件配置标识
+  #   plugin: dict, 适配器插件装载信息
+  #     注: 具体参考插件加载的通用配置
+  #     init_args {list} - 类实例的初始化固定参数, 以*args方式传入
+  #     init_kwargs {dict} - 类实例的初始化kv参数, 以*kwargs方式传入
+  #       注: 适配器的入参为dict类型, 定义如下
+  #       init_config: dict, 初始化参数, 按不同适配器的入参需要传入
+  #       logger_id: str, 日志对象标识, 可以选择application.yaml配置中的其中一个日志对象
+  # ******************************************
+  # Http调用的通用报文格式转换插件
+  HttpCommonCallerFormater:
+    plugin:
+      path: adapter/caller_formater_http.py
+      class: HttpCommonCallerFormater
+      instantiation: True
+      init_kwargs:
+        init_config:
+          # 超时时间, 单位为秒
+          timeout: 60.0
+          # 协议映射字典
+          protocol_mapping:
+            https:
+              - https
+        logger_id: sysLogger
+
+  # 异步模式的Http调用的通用报文格式转换插件
+  AioHttpCommonCallerFormater:
+    plugin:
+      path: adapter/caller_formater_http.py
+      class: AioHttpCommonCallerFormater
+      instantiation: True
+      init_kwargs:
+        init_config:
+          # 超时时间, 单位为秒
+          timeout: 60.0
+          # 协议映射字典
+          protocol_mapping:
+            https:
+              - https
+        logger_id: sysLogger
+
+  # 异步模式的Http调用的HiveNet标准报文格式转换插件
+  AioHttpHiveNetStdIntfCallerFormater:
+    plugin:
+      path: adapter/caller_formater_http.py
+      class: AioHttpHiveNetStdIntfCallerFormater
+      instantiation: True
+      init_kwargs:
+        init_config:
+          # 超时时间, 单位为秒
+          timeout: 60.0
+          # 协议映射字典
+          protocol_mapping:
+            https:
+              - https
+          serial_number_adapter_id: serial_number
+          serial_number_adapter_type: SerialNumber
+          global_serial_number_id: globSeqNum
+          sys_serial_number_id: sysSeqNum
+          inf_serial_number_id: infSeqNum
+          global_serial_number_batch_size: 0
+          sys_serial_number_batch_size: 0
+          inf_serial_number_batch_size: 0
+        logger_id: sysLogger

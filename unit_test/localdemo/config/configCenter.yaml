@@ -1,0 +1,89 @@
+# 应用配置中心的访问配置
+base_config:
+  # ******************************************
+  # env: str, 当前环境配置, 全局参数, 指定需获取配置应用的环境信息, 例如DEV/SIT/UAT/PRD
+  # center_type: str, 配置中心类型, 不设置代表从本地文件获取配置, 如果设置了类型, 需要通过类型获取具体的配置项
+  #   例如: 设置为nacos, 则从nacos配置节点获取该类型的配置中心的具体配置
+  # namespace: str, 配置所在的命名空间, 可以实现不同环境或项目的软隔离, 注意该命名空间除了用于配置中心意外, 也会用于微服务发布的注册中心配置之上
+  #   注: 真实的命名空间会在后面添加环境信息, 例如'HiveNetMicroConfig-${env}'
+  # prefix: str, 配置项的前缀, 可以通过设置不同的前缀来隔离不同服务器的配置, 同时也可以设置相同的前缀来让多个服务器共享一套配置
+  # not_existed: str, 配置项不存在时的处理机制, error-直接报错且不进行处理, create-利用本地的配置文件信息创建
+  # default_timeout: float, 默认的超时时间, 单位为秒
+  # ******************************************
+  env: ~
+  center_type: ~
+  namespace: HiveNetMicroConfig
+  prefix: ~
+  not_existed: create
+  default_timeout: 3.0
+
+# 本地配置文件的映射参数
+data_file_mapping:
+  # ******************************************
+  # Item Key: 配置标识, 建议直接以配置文件名作为标识
+  #   type: str, 配置的内容格式, 支持text, xml, json, yaml
+  #   local_file: str, 本地对应的配置文件, config目录的相对路径
+  # ******************************************
+  application.yaml:  # 微服务应用配置
+    type: yaml
+    local_file: application.yaml
+
+  services.yaml:  # 对外服务配置
+    type: yaml
+    local_file: services.yaml
+
+  remoteServices.yaml:  # 远程调用支持服务配置
+    type: yaml
+    local_file: remoteServices.yaml
+
+# ******************************************
+#  注: 以下是插件加载的通用配置说明
+#  plugin: dict, 插件装载信息
+#    is_self_plugin: bool, 是否自有插件, 默认为False(直接从安装目录获取默认支持的插件)
+#    path: str, 文件路径或加载模块的指定搜索路径(plugins目录下的相对路径)
+#    module_name: str, 指定要加载的模块名, 如果path包含完整文件名可以不设置
+#    class: str, 插件入口类名
+#    function: str, 指定要获取的函数名
+#    instantiation: bool, 是否要初始化类(缓存实例), 默认为False
+#    stand_alone: bool, 是否生成新的独立实例(不缓存), 默认为False
+#    cache_id: str, 缓存的唯一检索id, 可以设置为None
+#      注: 可以通过cache_id的不同控制一个类可以有多个实例的情况
+#    init_args {list} - 类实例的初始化固定参数, 以*args方式传入
+#    init_kwargs {dict} - 类实例的初始化kv参数, 以*kwargs方式传入
+# ******************************************
+
+# 可选的配置中心清单
+configs:
+  # nacos类型的配置中心设置
+  nacos:
+    plugin:
+      path: adapter/config_nacos.py
+      class: NacosConfigAdapter
+      instantiation: true
+      init_kwargs:
+        # ******************************************
+        # 固定位置的初始化参数
+        # init_config: dict, 客户端连接配置, acos配置中心支持的初始化参数包括:
+        #   server_addresses: str, 必填, 服务端地址, 可以通过逗号分隔多个地址
+        #     例如: "192.168.3.4:8848" or "https://192.168.3.4:443" or "http://192.168.3.4:8848,192.168.3.5:8848" or "https://192.168.3.4:443,https://192.168.3.5:443"
+        #   endpoint: str, 配置中心物理隔离参数, 可以不设置
+        #   ak: str, 阿里云MES的ak认证方案, 可以不设置
+        #   sk: str, 阿里云MES的sk认证方案, 可以不设置
+        #   username: str, 设置了登录认证的用户名
+        #   password: str, 设置了登录认证的密码
+        #   auto_create_mamespace: bool, 命名空间不存在时是否自动创建, 默认为True
+        #   default_options, dict, nacos默认参数值, 所支持的参数详见nacos的sdk
+        #     TIMEOUT, float, 默认超时时间, 单位为秒
+        #     ...
+        #   namespace: str, 指定当前连接要设置的命名空间, 如果设置为~代表直接使用base_config.namespace
+        # ******************************************
+        init_config:
+          server_addresses: 127.0.0.1:8848
+          endpoint: ~
+          ak: ~
+          sk: ~
+          username: ~
+          password: ~
+          auto_create_mamespace: true
+          default_options: ~
+        namespace: ~
