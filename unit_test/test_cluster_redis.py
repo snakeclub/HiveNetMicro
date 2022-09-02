@@ -73,6 +73,19 @@ class TestRedisClusterAdapter(unittest.TestCase):
 
         _tips = '测试单个服务集群'
         print(_tips)
+
+        # 清理无效服务
+        _init_config = copy.deepcopy(INIT_CONFIG)
+        _adapter_manager = RedisClusterAdapter(init_config=_init_config, is_manage=True)
+        _ret = _adapter_manager.clear_all_cluster(
+            _init_config['namespace']
+        )
+        self.assertTrue(_ret, '%s, clear all cluster error: %s' % (_tips, str(_ret)))
+        _clusters = _adapter_manager.get_cluster_list(_init_config['namespace'])
+        self.assertTrue(
+            len(_clusters) == 0, '%s, clear all cluster error: %s' % (_tips, str(_clusters))
+        )
+
         _init_config = copy.deepcopy(INIT_CONFIG)
         _adapter1 = RedisClusterAdapter(init_config=_init_config)
         _ret = _adapter1.register_cluster()
@@ -176,6 +189,19 @@ class TestRedisClusterAdapter(unittest.TestCase):
 
         _tips = '测试多个服务集群'
         print(_tips)
+
+        # 清理无效服务
+        _init_config = copy.deepcopy(INIT_CONFIG)
+        _adapter_manager = RedisClusterAdapter(init_config=_init_config, is_manage=True)
+        _ret = _adapter_manager.clear_all_cluster(
+            _init_config['namespace']
+        )
+        self.assertTrue(_ret, '%s, clear all cluster error: %s' % (_tips, str(_ret)))
+        _clusters = _adapter_manager.get_cluster_list(_init_config['namespace'])
+        self.assertTrue(
+            len(_clusters) == 0, '%s, clear all cluster error: %s' % (_tips, str(_clusters))
+        )
+
         _init_config = copy.deepcopy(INIT_CONFIG)
         _init_config['expire'] = 3.0
         _init_config['heart_beat'] = 1.0
@@ -209,21 +235,24 @@ class TestRedisClusterAdapter(unittest.TestCase):
         self.assertTrue(not _adapter3.master, '%s, master adapter3 error %s' % (_tips, _adapter3.master))
 
         # 获取集群列表信息
-        _expect = [
-            {'namespace': 'test_namespace', 'sys_id': 'SYSID', 'module_id': 'WEB', 'server_id': '01', 'app_name': 'app_01', 'master': True},
-            {'namespace': 'test_namespace', 'sys_id': 'SYSID', 'module_id': 'WEB', 'server_id': '02', 'app_name': 'app_02', 'master': False},
-            {'namespace': 'test_namespace', 'sys_id': 'SYSID', 'module_id': 'WEB', 'server_id': '03', 'app_name': 'app_03', 'master': False}
-        ]
+        _expect = {
+            '01': {'namespace': 'test_namespace', 'sys_id': 'SYSID', 'module_id': 'WEB', 'server_id': '01', 'app_name': 'app_01', 'master': True},
+            '02': {'namespace': 'test_namespace', 'sys_id': 'SYSID', 'module_id': 'WEB', 'server_id': '02', 'app_name': 'app_02', 'master': False},
+            '03': {'namespace': 'test_namespace', 'sys_id': 'SYSID', 'module_id': 'WEB', 'server_id': '03', 'app_name': 'app_03', 'master': False}
+        }
         _ret = _adapter1.get_cluster_list(_init_config['namespace'])
-        self.assertTrue(
-            TestTool.cmp_list(_expect, _ret),
-            '%s, get_cluster_list 1 error %s' % (_tips, str(_ret))
-        )
+        self.assertTrue(len(_ret) == len(_expect), '%s, get_cluster_list 1 error: len %s' % (_tips, str(_ret)))
+        for _cluster in _ret:
+            self.assertTrue(
+                TestTool.cmp_dict(_cluster, _expect[_cluster['server_id']]),
+                '%s, get_cluster_list 1 error: cluster cmp %s' % (_tips, str(_cluster))
+            )
+
         _ret = _adapter1.get_cluster_master(
             _init_config['namespace'], _init_config['sys_id'], _init_config['module_id']
         )
         self.assertTrue(
-            TestTool.cmp_dict(_ret, _expect[0]),
+            TestTool.cmp_dict(_ret, _expect['01']),
             '%s, get_cluster_master 1 error %s' % (_tips, str(_ret))
         )
 
@@ -233,7 +262,7 @@ class TestRedisClusterAdapter(unittest.TestCase):
             _init_config['namespace'], _init_config['sys_id'], _init_config['module_id']
         )
         self.assertTrue(
-            TestTool.cmp_dict(_ret, _expect[0]),
+            TestTool.cmp_dict(_ret, _expect['01']),
             '%s, get_cluster_master 2 error %s' % (_tips, str(_ret))
         )
 
@@ -307,6 +336,19 @@ class TestRedisClusterAdapter(unittest.TestCase):
 
         _tips = '测试事件'
         print(_tips)
+
+        # 清理无效服务
+        _init_config = copy.deepcopy(INIT_CONFIG)
+        _adapter_manager = RedisClusterAdapter(init_config=_init_config, is_manage=True)
+        _ret = _adapter_manager.clear_all_cluster(
+            _init_config['namespace']
+        )
+        self.assertTrue(_ret, '%s, clear all cluster error: %s' % (_tips, str(_ret)))
+        _clusters = _adapter_manager.get_cluster_list(_init_config['namespace'])
+        self.assertTrue(
+            len(_clusters) == 0, '%s, clear all cluster error: %s' % (_tips, str(_clusters))
+        )
+
         _init_config = copy.deepcopy(INIT_CONFIG)
         _init_config['event_interval'] = 1.0
 

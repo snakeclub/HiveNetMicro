@@ -53,7 +53,7 @@ class RedisClusterAdapter(ClusterAdapter):
     #############################
     # 构造函数
     #############################
-    def __init__(self, init_config: dict = {}, logger_id: str = None, **kwargs):
+    def __init__(self, init_config: dict = {}, logger_id: str = None, is_manage: bool = False, **kwargs):
         """
         构造函数
 
@@ -81,8 +81,10 @@ class RedisClusterAdapter(ClusterAdapter):
                 password {str} - 登录密码, 默认为None
 
         @param {str} logger_id=None - 日志对象标识, 可以选择application.yaml配置中的其中一个日志对象
+        @param {bool} is_manage=False - 指定适配器是否以管理工具方式启动
+            注: 管理工具方式启动不会进行集群注册和心跳同步
         """
-        super().__init__(init_config, logger_id=logger_id)
+        super().__init__(init_config, logger_id=logger_id, is_manage=is_manage)
 
     #############################
     # 需要实现类重载的内部函数
@@ -94,16 +96,16 @@ class RedisClusterAdapter(ClusterAdapter):
         # redis缓存前缀
         self._cache_name = '{$group=cluster_info$}{$%s$}{$%s$}{$%s$}{$%s$}' % (
             self._namespace, self._sys_id, self._module_id, self._server_id
-        )
+        )  # 当前服务器的集群唯一标识, 值为服务器的app_name
         self._cache_events_exists = '{$group=cluster_event_exists$}{$%s$}{$%s$}{$%s$}{$%s$}' % (
             self._namespace, self._sys_id, self._module_id, self._server_id
-        )  # 用于判断列表是否存在
+        )  # 用于判断列表是否存在, 有这个key就代表存在当前服务有集群消息列表, 值为1
         self._cache_events = '{$group=cluster_event$}{$%s$}{$%s$}{$%s$}{$%s$}' % (
             self._namespace, self._sys_id, self._module_id, self._server_id
-        )
+        )  # 当前服务器的集群的消息列表队列, 值为待处理的消息列表
         self._cache_master = '{$group=cluster_master$}{$%s$}{$%s$}{$%s$}' % (
             self._namespace, self._sys_id, self._module_id
-        )
+        ) # 当前集群模块的集群master服务器，值为服务器的server_id
 
         # 超时时间
         self._expire_timedelta = datetime.timedelta(seconds=self._expire)
@@ -210,7 +212,9 @@ class RedisClusterAdapter(ClusterAdapter):
             _cache_master = '{$group=cluster_master$}{$%s$}{$%s$}{$%s$}' % (
                 namespace, _infos['sys_id'], _infos['module_id']
             )
-            _master_index = _master_keys.index(_cache_master)
+            _master_index = -1
+            if _cache_master in _master_keys:
+                _master_index = _master_keys.index(_cache_master)
             if _master_index >= 0 and _master_server_ids[_master_index] == _infos['server_id']:
                 _infos['master'] = True
 
@@ -404,6 +408,63 @@ class RedisClusterAdapter(ClusterAdapter):
 
             for _item in _ret:
                 yield json.loads(_item)
+
+    def _clear_all_cluster(self, namespace: str, sys_id: str = None, module_id: str = None, server_id: str = None) -> bool:
+        """
+        清空所有集群信息(仅管理使用)
+
+        @param {str} namespace - 服务注册所在的命名空间, 可以实现不同环境或项目的软隔离
+        @param {str} sys_id=None - 系统标识(标准为5位字符), 不传代表获取上一级的所有信息
+        @param {str} module_id=None - 模块标识(标准为3位字符), 不传代表获取上一级的所有信息
+        @param {str} server_id=None - 服务实例序号(标准为2个字符, 建议为数字), 不传代表获取上一级的所有信息
+
+        @returns {bool} - 处理结果
+        """
+        _clear_clusters = []
+        if server_id is None:
+            # 清除namespace下的所有集群信息
+            _clusters = self.get_cluster_list(
+                namespace, sys_id=sys_id, module_id=module_id
+            )
+            for _info in _clusters:
+                _clear_clusters.append([
+                    _info['namespace'], _info['sys_id'], _info['module_id'], _info['server_id'], _info['master']
+                ])
+        else:
+            # 清除指定的服务器
+            _master = self.get_cluster_master(namespace, sys_id, module_id)
+            _clear_clusters.append([
+                namespace, sys_id, module_id, server_id,
+                False if _master is None else _master['server_id'] == server_id
+            ])
+
+        _clear_keys = []
+        for _cluster in _clear_clusters:
+            # 组装redis缓存前缀
+            _cache_name = '{$group=cluster_info$}{$%s$}{$%s$}{$%s$}{$%s$}' % (
+                _cluster[0], _cluster[1], _cluster[2], _cluster[3]
+            )  # 当前服务器的集群唯一标识, 值为服务器的app_name
+            _cache_events_exists = '{$group=cluster_event_exists$}{$%s$}{$%s$}{$%s$}{$%s$}' % (
+                _cluster[0], _cluster[1], _cluster[2], _cluster[3]
+            )  # 用于判断列表是否存在, 有这个key就代表存在当前服务有集群消息列表, 值为1
+            _cache_events = '{$group=cluster_event$}{$%s$}{$%s$}{$%s$}{$%s$}' % (
+                _cluster[0], _cluster[1], _cluster[2], _cluster[3]
+            )  # 当前服务器的集群的消息列表队列, 值为待处理的消息列表
+
+            _clear_keys.append(_cache_name)
+            _clear_keys.append(_cache_events_exists)
+            _clear_keys.append(_cache_events)
+            if _cluster[4]:
+                _cache_master = '{$group=cluster_master$}{$%s$}{$%s$}{$%s$}' % (
+                    _cluster[0], _cluster[1], _cluster[2]
+                ) # 当前集群模块的集群master服务器，值为服务器的server_id
+                _clear_keys.append(_cache_master)
+
+        # 清除对应的key
+        if len(_clear_keys) == 0:
+            return True
+        else:
+            return self._redis.delete(*_clear_keys) > 0
 
     #############################
     # 内部函数

@@ -1,0 +1,23 @@
+  AioHttpHiveNetStdIntfCallerFormater:
+    # 异步模式的Http调用的HiveNet标准报文格式转换插件
+    plugin:
+      path: adapter/caller_formater_http.py
+      class: AioHttpHiveNetStdIntfCallerFormater
+      instantiation: True
+      init_kwargs:
+        init_config:
+          # 超时时间, 单位为秒
+          timeout: 60.0
+          # 协议映射字典
+          protocol_mapping:
+            https:
+              - https
+          serial_number_adapter_id: serial_number
+          serial_number_adapter_type: SerialNumber
+          global_serial_number_id: globSeqNum
+          sys_serial_number_id: sysSeqNum
+          inf_serial_number_id: infSeqNum
+          global_serial_number_batch_size: 0
+          sys_serial_number_batch_size: 0
+          inf_serial_number_batch_size: 0
+        logger_id: sysLogger

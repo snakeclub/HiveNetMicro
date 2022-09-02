@@ -115,6 +115,9 @@ test_data/temp/
 nacos-data/
 logs/
 
+# other
+running_data/
+
 # Mac
 .DS_Store
 .DS_Store/*

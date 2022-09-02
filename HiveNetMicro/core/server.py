@@ -115,7 +115,7 @@ class ServerStarter(object):
         print('get application config ...')
         self.app_config = AsyncTools.sync_call(
             self.config_center.get_config_cached,
-            'application.yaml', group='sys', content_type='yaml'
+            'application.yaml', content_type='yaml'
         )  # 应用的配置信息
 
         # 初始化i18n对象
@@ -156,8 +156,11 @@ class ServerStarter(object):
         self.sys_logger.info(_('Start logging server initialize ...'))
         try:
             # 初始化插件管理模块
-            self.adapter_manager = AdapterManager(self.plugins_path)
+            self.adapter_manager = AdapterManager(self.plugins_path, self.base_path)
             GlobalManager.SET_SYS_ADAPTER_MANAGER(self.adapter_manager)
+
+            # 初始化统一的动态对象
+            self._init_dynamic_object()
 
             # 初始化动态适配器
             self._init_dynamic_adapter()
@@ -293,6 +296,20 @@ class ServerStarter(object):
             )
         )  # 服务公共日志对象
 
+    def _init_dynamic_object(self):
+        """
+        初始化动态对象
+        """
+        if self.app_config.get('dynamic_objects', None) is None:
+            # 没有动态对象
+            return
+
+        for _name, _config in self.app_config['dynamic_objects'].items():
+            self.sys_logger.info(_('Initialize dynamic object [$1] ...', _name))
+            self.adapter_manager.load_adapter(
+                _name, adapter_type='DynamicObject', plugin=_config['plugin']
+            )
+
     def _init_dynamic_adapter(self):
         """
         初始化动态适配器
@@ -300,7 +317,7 @@ class ServerStarter(object):
         self.sys_logger.info(_('Get adapters config ...'))
         self.adapters_config = AsyncTools.sync_call(
             self.config_center.get_config_cached,
-            'adapters.yaml', group='sys', content_type='yaml'
+            'adapters.yaml', content_type='yaml'
         )
 
         # 遍历进行加载处理
@@ -310,9 +327,7 @@ class ServerStarter(object):
 
         for _name, _config in self.adapters_config['adapters'].items():
             self.sys_logger.info(_('Initialize dynamic adapter [$1] ...', _name))
-            self.adapter_manager.load_adapter(
-                _config['adapter_type'], _name, _config['plugin']
-            )
+            self.adapter_manager.load_adapter(_name, **_config)
 
     def _init_naming(self):
         """
@@ -371,7 +386,7 @@ class ServerStarter(object):
         if _inf_loggings is not None:
             for _adapter_id, _config in _inf_loggings.items():
                 self.adapter_manager.load_adapter(
-                    'inf_logging', _adapter_id, _config['plugin']
+                    _adapter_id, adapter_type='inf_logging', plugin=_config['plugin']
                 )
 
     def _init_inf_check_adapters(self):
@@ -405,15 +420,15 @@ class ServerStarter(object):
         if _caller_formaters is not None:
             for _caller_formater_id in _caller_formaters:
                 self.adapter_manager.load_adapter(
-                    'formater_caller', _caller_formater_id,
-                    self.app_config['caller_formaters'][_caller_formater_id]['plugin']
+                    _caller_formater_id, adapter_type='formater_caller',
+                    plugin=self.app_config['caller_formaters'][_caller_formater_id]['plugin']
                 )
 
-        # 遍历添加远程调用服务配置
+        # 获取远程调用服务配置
         self.sys_logger.info(_('Get remote services config ...'))
         self.remote_services_config = AsyncTools.sync_call(
             self.config_center.get_config_cached,
-            'remoteServices.yaml', group='sys', content_type='yaml'
+            'remoteServices.yaml', content_type='yaml'
         )
 
         # 执行参数配置的初始化(复制通用配置)
@@ -473,8 +488,8 @@ class ServerStarter(object):
         self.sys_logger.info(_('Initialize server formaters ...'))
         for _server_formater_id in _web_server_config['server_formaters']:
             self.adapter_manager.load_adapter(
-                'formater_server', _server_formater_id,
-                self.app_config['server_formaters'][_server_formater_id]['plugin']
+                _server_formater_id, adapter_type='formater_server',
+                plugin=self.app_config['server_formaters'][_server_formater_id]['plugin']
             )
 
         # 初始化Web服务器
@@ -494,10 +509,10 @@ class ServerStarter(object):
         装载服务清单
         """
         self.sys_logger.info(_('Get services config ...'))
-        self.services_config = AsyncTools.sync_call(
+        self.services_config = dict(AsyncTools.sync_call(
             self.config_center.get_config_cached,
-            'services.yaml', group='sys', content_type='yaml'
-        )
+            'services.yaml', content_type='yaml'
+        ))
 
         # 执行参数配置的初始化(复制通用配置)
         for _name in self.services_config['services'].keys():

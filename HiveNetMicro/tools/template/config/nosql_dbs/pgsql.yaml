@@ -1,0 +1,20 @@
+  pgsql:
+    # Postgresql的适配器
+    adapter_type: NoSqlDb
+    convert_logger_paths:
+      - "init_kwargs/driver_config/logger"
+    plugin:
+      module_name: HiveNetNoSql.pgsql
+      class: PgSQLNosqlDriver
+      instantiation: true
+      init_kwargs:
+        # 支持的参数见PgSQLNosqlDriver的初始化函数, 注意pool_config和driver_config参数如果不设置应删除配置项
+        connect_config:
+          host: "127.0.0.1"
+          port: 5432
+          usedb: public
+          username: root
+          password: "123456"
+          dbname: test_db
+        driver_config:
+          logger: sysLogger

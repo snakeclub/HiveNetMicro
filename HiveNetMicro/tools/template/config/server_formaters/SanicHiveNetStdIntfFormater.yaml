@@ -1,0 +1,9 @@
+  SanicHiveNetStdIntfFormater:
+    # HiveNet标准接口规范报文转换的Sanic服务端适配实现
+    plugin:
+      path: adapter/server_formater_sanic.py
+      class: SanicHiveNetStdIntfServerFormater
+      instantiation: True
+      init_kwargs:
+        init_config: ~
+        logger_id: sysLogger

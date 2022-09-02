@@ -143,7 +143,7 @@ class TracerAdapter(AdapterBaseFw):
             self._trace_exceptions = []
 
         self._get_response_error_func = self._trace_options.get('get_response_error_func', None)
-        if type(self._get_response_error_func) == dict:
+        if isinstance(self._get_response_error_func, dict):
             # 支持配置方式处理
             self._get_response_error_func = self.get_func_by_config(self._get_response_error_func)
 

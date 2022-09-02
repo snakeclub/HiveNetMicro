@@ -16,13 +16,13 @@ import os
 import sys
 import json
 import copy
+from HiveNetCore.yaml import EnumYamlObjType, SimpleYaml
 from HiveNetCore.xml_hivenet import EnumXmlObjType, SimpleXml
 from HiveNetCore.utils.run_tool import AsyncTools
 from HiveNetCore.utils.import_tool import DynamicLibManager
 # 根据当前文件路径将包路径纳入, 在非安装的情况下可以引用到
 sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__), os.path.pardir, os.path.pardir)))
-from HiveNetMicro.core.utils.yaml import YamlConfig
 from HiveNetMicro.interface.adapter.config import ConfigAdapter
 
 
@@ -45,7 +45,9 @@ class ConfigCenter(object):
         self.config_file = os.path.join(self.config_path, 'configCenter.yaml')
 
         # 获取配置中心的配置
-        _config = YamlConfig(file=self.config_file).yaml_config
+        _config = SimpleYaml(
+            self.config_file, obj_type=EnumYamlObjType.File, encoding='utf-8'
+        ).yaml_dict
         self.base_config: dict = _config['base_config']
 
         if self.base_config['env'] is not None and self.base_config['env'] != '':
@@ -56,6 +58,9 @@ class ConfigCenter(object):
 
         if self.base_config['prefix'] is None:
             self.base_config['prefix'] = ''
+
+        if self.base_config.get('group', None) is None:
+            self.base_config['group'] = 'sys'  # 默认分组
 
         self.data_file_mapping: dict = _config['data_file_mapping']
         self.centerConfig = None if self.base_config['center_type'] is None else _config['configs'][self.base_config['center_type']]
@@ -98,6 +103,10 @@ class ConfigCenter(object):
         return self.base_config['namespace']
 
     @property
+    def group(self):
+        return self.base_config['group']
+
+    @property
     def prefix(self):
         return self.base_config['prefix']
 
@@ -109,7 +118,7 @@ class ConfigCenter(object):
         获取指定配置信息
 
         @param {str} data_id - 配置ID
-        @param {str} group=None - 配置所属分组
+        @param {str} group=None - 配置所属分组, 如果不传则使用默认分组
         @param {int} timeout=None - 超时时间, 单位为毫秒
 
         @returns {str} - 返回配置信息的字符串
@@ -121,9 +130,10 @@ class ConfigCenter(object):
             # 通过配置中心获取
             _timeout = self.base_config['default_timeout'] if timeout is None else timeout
             _prefixed_data_id = self._get_prefixed_data_id(data_id)
+            _group = self.base_config['group'] if group is None else group
             config_str = await AsyncTools.async_run_coroutine(
                 self._adapter.get_config(
-                    _prefixed_data_id, group, timeout=_timeout
+                    _prefixed_data_id, _group, timeout=_timeout
                 )
             )
 
@@ -133,13 +143,13 @@ class ConfigCenter(object):
                     config_str = self._read_file(data_id)
                     await AsyncTools.async_run_coroutine(
                         self.set_config(
-                            data_id, config_str, group=group, content_type=self._get_config_type(data_id),
+                            data_id, config_str, group=_group, content_type=self._get_config_type(data_id),
                             timeout=_timeout
                         )
                     )
                 else:
                     # 直接抛出异常
-                    raise FileNotFoundError('[dataid: %s] [group: %s] not found in config center' % (_prefixed_data_id, group))
+                    raise FileNotFoundError('[dataid: %s] [group: %s] not found in config center' % (_prefixed_data_id, _group))
 
             return config_str
 
@@ -163,10 +173,11 @@ class ConfigCenter(object):
             self._write_file(data_id, content)
         else:
             _timeout = self.base_config['default_timeout'] if timeout is None else timeout
+            _group = self.base_config['group'] if group is None else group
             _prefixed_data_id = self._get_prefixed_data_id(data_id)
             await AsyncTools.async_run_coroutine(
                 self._adapter.set_config(
-                    _prefixed_data_id, content, group=group, content_type=content_type, timeout=_timeout
+                    _prefixed_data_id, content, group=_group, content_type=content_type, timeout=_timeout
                 )
             )
 
@@ -188,11 +199,12 @@ class ConfigCenter(object):
         """
         _type = 'text' if content_type == 'text' else 'dict'
         config = self._cache[_type].get(data_id, None)
+        _group = self.base_config['group'] if group is None else group
         if config is None:
             # 重新获取
             _timeout = self.base_config['default_timeout'] if timeout is None else timeout
             config_str = await AsyncTools.async_run_coroutine(
-                self.get_config(data_id, group=group, timeout=_timeout)
+                self.get_config(data_id, group=_group, timeout=_timeout)
             )
             if content_type == 'yaml':
                 config = self.yaml_to_dict(config_str)
@@ -230,7 +242,7 @@ class ConfigCenter(object):
 
         @returns {dict} - 转换后的配置字典
         """
-        return YamlConfig(yaml_str=config_str).yaml_config
+        return SimpleYaml.yaml_to_dict(config_str, support_comments=False)
 
     def dict_to_yaml(self, config_dict: dict) -> str:
         """
@@ -240,7 +252,7 @@ class ConfigCenter(object):
 
         @returns {str} - 转换后的yaml配置字符串
         """
-        return YamlConfig.to_yaml_str(config_dict)
+        return SimpleYaml.dict_to_yaml(config_dict)
 
     def json_to_dict(self, config_str: str) -> dict:
         """

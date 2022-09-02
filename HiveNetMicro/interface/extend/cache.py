@@ -64,7 +64,9 @@ class CacheAdapter(AdapterBaseFw):
         @param {dict} auto_cache_init_handlers=None - 自动缓存管理初始化的函数对象索引
             'load_handlers' {dict} - 缓存数据获取函数索引
                 [id] {dict} - 函数对象索引id, key为索引id标识字符串
-                    handler {function} - 缓存获取函数对象, 函数定义为:
+                    handler {function|str} - 缓存获取函数对象
+                        注: 如果传入的是str代表获取统一加载的对象, 从SYS_ADAPTER_MANAGER中获取类型为DynamicObject的对应函数对象
+                        函数定义为:
                         func(cache_config, *args, **kwargs)
                         cache_config为外部传入的缓存信息字典, 格式为:
                             {
@@ -78,7 +80,9 @@ class CacheAdapter(AdapterBaseFw):
                     kwargs {dict} - 默认的缓存获取函数的key-value入参字典(当自动缓存管理参数不设置时使用该值传入)
             'check_handlers' {dict} - 检查缓存数据是否需更新的检查函数索引
                 [id] {dict} - 函数对象索引id, key为索引id标识字符串
-                    handler {function} - 检查缓存数据是否需要更新的函数对象, 函数定义为:
+                    handler {function|str} - 检查缓存数据是否需要更新的函数对象
+                        注: 如果传入的是str代表获取统一加载的对象, 从SYS_ADAPTER_MANAGER中获取类型为DynamicObject的对应函数对象
+                        函数定义为:
                         func(cache_config, *args, **kwargs)
                         cache_config定义与load_handler一致
                         函数返回值为bool对象, 指示缓存数据是否需要更新
@@ -99,6 +103,9 @@ class CacheAdapter(AdapterBaseFw):
             self._kwargs.get('logger_id', None), none_with_default_logger=True
         )
 
+        # 适配器管理模块
+        self.sys_adapter_manager = GlobalManager.GET_SYS_ADAPTER_MANAGER()
+
         # 执行实现类的初始化函数
         self._self_init()
 
@@ -109,15 +116,28 @@ class CacheAdapter(AdapterBaseFw):
         if self._kwargs.get('auto_cache_init_handlers', None) is not None:
             _load_handlers_config = self._kwargs['auto_cache_init_handlers'].get('load_handlers', {})
             for _id, _paras in _load_handlers_config.items():
+                _load_handler = _paras['handler']
+                if type(_load_handler) == str:
+                    _load_handler = self.sys_adapter_manager.get_adapter(
+                        'DynamicObject', _id
+                    )
+
                 self._auto_cache_init_handlers['load_handlers'][_id] = {
-                    'handler': _paras['handler'],
+                    'handler': _load_handler,
                     'args': _paras.get('args', []),
                     'kwargs': _paras.get('kwargs', {})
                 }
+
             _load_handlers_config = self._kwargs['auto_cache_init_handlers'].get('check_handlers', {})
             for _id, _paras in _load_handlers_config.items():
+                _check_handler = _paras['handler']
+                if type(_check_handler) == str:
+                    _check_handler = self.sys_adapter_manager.get_adapter(
+                        'DynamicObject', _id
+                    )
+
                 self._auto_cache_init_handlers['check_handlers'][_id] = {
-                    'handler': _paras['handler'],
+                    'handler': _check_handler,
                     'args': _paras.get('args', []),
                     'kwargs': _paras.get('kwargs', {})
                 }

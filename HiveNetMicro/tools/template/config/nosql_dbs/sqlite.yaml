@@ -1,0 +1,18 @@
+  sqlite:
+    # Sqlite的适配器
+    adapter_type: NoSqlDb
+    convert_logger_paths:
+      - "init_kwargs/driver_config/logger"
+    plugin:
+      module_name: HiveNetNoSql.sqlite
+      class: SQLiteNosqlDriver
+      instantiation: true
+      init_kwargs:
+        # 支持的参数见SQLiteNosqlDriver的初始化函数, 注意pool_config和driver_config参数如果不设置应删除配置项
+        connect_config:
+          host: "/usr/test.db"
+          connect_on_init: true
+          default_str_len: 30
+          check_same_thread: false
+        driver_config:
+          logger: sysLogger

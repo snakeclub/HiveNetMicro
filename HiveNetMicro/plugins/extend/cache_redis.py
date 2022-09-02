@@ -59,7 +59,9 @@ class RedisCacheAdapter(CacheAdapter):
         @param {dict} auto_cache_init_handlers=None - 自动缓存管理初始化的函数对象索引
             'load_handlers' {dict} - 缓存数据获取函数索引
                 [id] {dict} - 函数对象索引id, key为索引id标识字符串
-                    handler {function} - 缓存获取函数对象, 函数定义为:
+                    handler {function|str} - 缓存获取函数对象
+                        注: 如果传入的是str代表获取统一加载的对象, 从SYS_ADAPTER_MANAGER中获取类型为DynamicObject的对应函数对象
+                        函数定义为:
                         func(cache_config, *args, **kwargs)
                         cache_config为外部传入的缓存信息字典, 格式为:
                             {
@@ -73,7 +75,9 @@ class RedisCacheAdapter(CacheAdapter):
                     kwargs {dict} - 默认的缓存获取函数的key-value入参字典(当自动缓存管理参数不设置时使用该值传入)
             'check_handlers' {dict} - 检查缓存数据是否需更新的检查函数索引
                 [id] {dict} - 函数对象索引id, key为索引id标识字符串
-                    handler {function} - 检查缓存数据是否需要更新的函数对象, 函数定义为:
+                    handler {function|str} - 检查缓存数据是否需要更新的函数对象
+                        注: 如果传入的是str代表获取统一加载的对象, 从SYS_ADAPTER_MANAGER中获取类型为DynamicObject的对应函数对象
+                        函数定义为:
                         func(cache_config, *args, **kwargs)
                         cache_config定义与load_handler一致
                         函数返回值为bool对象, 指示缓存数据是否需要更新

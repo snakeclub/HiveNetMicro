@@ -23,13 +23,16 @@ SHORT_DESCRIPTION = """
 
 DEPENDENCIES = [
     'HiveNetCore',
+    'HiveNetConsole',
     'HiveNetSimpleSanic',
-    'pyyaml',
+    'HiveNetNoSql',
+    'ruamel.yaml',
     'pyjsonpath',
     'nest_asyncio',
     'aiohttp',
     'bson',
-    'opentracing'
+    'opentracing',
+    'xlrd'
 ]
 
 # DEPENDENCIES = []
@@ -64,6 +67,10 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Topic :: Software Development :: Libraries'
     ],
+    entry_points={'console_scripts': [
+        "micro_start_service=HiveNetMicro.start_service:main",
+        "micro_cmd_tool=HiveNetMicro.tools.cmd_tool:main",
+    ]},
     # 此项需要, 否则卸载时报windows error
     zip_safe=False
 )

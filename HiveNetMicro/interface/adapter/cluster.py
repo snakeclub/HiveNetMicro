@@ -48,7 +48,7 @@ class ClusterAdapter(AdapterBaseFw):
     #############################
     # 构造函数
     #############################
-    def __init__(self, init_config: dict = {}, logger_id: str = None, **kwargs):
+    def __init__(self, init_config: dict = {}, logger_id: str = None, is_manage: bool = False, **kwargs):
         """
         构造函数
 
@@ -69,6 +69,8 @@ class ClusterAdapter(AdapterBaseFw):
             after_lost_master {function} - 当服务变为失去集群主服务后触发执行的函数, 函数入参为adapter对象(self)
             实现类定义的参数...
         @param {str} logger_id=None - 日志对象标识, 可以选择application.yaml配置中的其中一个日志对象
+        @param {bool} is_manage=False - 指定适配器是否以管理工具方式启动
+            注: 管理工具方式启动不会进行集群注册和心跳同步
         """
         # 参数处理
         self._init_config = init_config
@@ -89,6 +91,9 @@ class ClusterAdapter(AdapterBaseFw):
             self._kwargs.get('logger_id', None), none_with_default_logger=True
         )
 
+        # 是否管理端标识
+        self._is_manage = is_manage
+
         # 内部控制变量
         self._start_heart_beat = False  # 指示是否启动心跳处理
         self._registered = False  # 指示当前服务是否已注册集群
@@ -106,39 +111,41 @@ class ClusterAdapter(AdapterBaseFw):
         # 执行实现类的初始化函数
         self._self_init()
 
-        # 启动续约心跳的定时器
-        self._heart_timer = Timer(
-            self._init_config.get('heart_beat', 4), self._heart_beat_timer_func
-        )
-        self._heart_timer.setDaemon(True)
-        self._heart_timer.start()
-
-        # 已注册的事件处理函数, key为事件, value为处理函数
-        self._event_func = {}
-
-        # 启动指令接收检查定时器
-        self._event_timer = None
-        if self._enable_event:
-            self._event_timer = Timer(
-                self._init_config.get('event_interval', 2), self._event_timer_func
+        if not self._is_manage:
+            # 启动续约心跳的定时器
+            self._heart_timer = Timer(
+                self._init_config.get('heart_beat', 4), self._heart_beat_timer_func
             )
-            self._event_timer.setDaemon(True)
-            self._event_timer.start()
+            self._heart_timer.setDaemon(True)
+            self._heart_timer.start()
+
+            # 已注册的事件处理函数, key为事件, value为处理函数
+            self._event_func = {}
+
+            # 启动指令接收检查定时器
+            self._event_timer = None
+            if self._enable_event:
+                self._event_timer = Timer(
+                    self._init_config.get('event_interval', 2), self._event_timer_func
+                )
+                self._event_timer.setDaemon(True)
+                self._event_timer.start()
 
     def __del__(self):
         """
         析构函数
         """
-        # 关闭守护线程
-        if self._event_timer is not None:
-            self._event_timer.cancel()
+        if not self._is_manage:
+            # 关闭守护线程
+            if self._event_timer is not None:
+                self._event_timer.cancel()
 
-        if self._heart_timer is not None:
-            self._heart_timer.cancel()
+            if self._heart_timer is not None:
+                self._heart_timer.cancel()
 
-        # 如果已注册, 取消注册
-        if self._registered:
-            self.deregister_cluster()
+            # 如果已注册, 取消注册
+            if self._registered:
+                self.deregister_cluster()
 
     #############################
     # 需要实现类重载的内部函数
@@ -183,6 +190,10 @@ class ClusterAdapter(AdapterBaseFw):
         with ExceptionTool.ignored_cresult(
             result_obj=_result, logger=self.logger, self_log_msg='register cluster error'
         ):
+            if self._is_manage:
+                # 管理端不支持操作
+                raise RuntimeError('not allow when is_manage is true')
+
             if self._start_heart_beat:
                 # 已经启动心跳, 代表曾经注册成功, 通过心跳重新注册即可
                 raise RuntimeError('server is registered')
@@ -209,6 +220,10 @@ class ClusterAdapter(AdapterBaseFw):
         with ExceptionTool.ignored_cresult(
             result_obj=_result, logger=self.logger, self_log_msg='deregister cluster error'
         ):
+            if self._is_manage:
+                # 管理端不支持操作
+                raise RuntimeError('not allow when is_manage is true')
+
             if not self._start_heart_beat:
                 raise RuntimeError('server is not registered')
 
@@ -248,6 +263,10 @@ class ClusterAdapter(AdapterBaseFw):
         with ExceptionTool.ignored_cresult(
             result_obj=_result, logger=self.logger, self_log_msg='register event error'
         ):
+            if self._is_manage:
+                # 管理端不支持操作
+                raise RuntimeError('not allow when is_manage is true')
+
             if self._event_func.get(event, None) is not None:
                 raise RuntimeError('event [%s] already exists' % event)
 
@@ -267,7 +286,38 @@ class ClusterAdapter(AdapterBaseFw):
         with ExceptionTool.ignored_cresult(
             result_obj=_result, logger=self.logger, self_log_msg='deregister event error'
         ):
+            if self._is_manage:
+                # 管理端不支持操作
+                raise RuntimeError('not allow when is_manage is true')
+
             self._event_func.pop(event)
+
+        return _result
+
+    def clear_all_cluster(self, namespace: str, sys_id: str = None, module_id: str = None, server_id: str = None) -> CResult:
+        """
+        清空所有集群信息(仅管理使用)
+
+        @param {str} namespace - 服务注册所在的命名空间, 可以实现不同环境或项目的软隔离
+        @param {str} sys_id=None - 系统标识(标准为5位字符), 不传代表获取上一级的所有信息
+        @param {str} module_id=None - 模块标识(标准为3位字符), 不传代表获取上一级的所有信息
+        @param {str} server_id=None - 服务实例序号(标准为2个字符, 建议为数字), 不传代表获取上一级的所有信息
+
+        @returns {CResult} - 处理结果
+        """
+        _result = CResult()
+        with ExceptionTool.ignored_cresult(
+            result_obj=_result, logger=self.logger, self_log_msg='deregister event error'
+        ):
+            if not self._is_manage:
+                # 管理端不支持操作
+                raise RuntimeError('not allow when is_manage is false')
+
+            if not self._clear_all_cluster(
+                namespace, sys_id=sys_id, module_id=module_id, server_id=server_id
+            ):
+                # 处理失败
+                raise RuntimeError('clear all cluster error')
 
         return _result
 
@@ -588,5 +638,18 @@ class ClusterAdapter(AdapterBaseFw):
                     'server_id': '',  # 服务实例序号(标准为2个字符, 建议为数字)
                 }
             }
+        """
+        raise NotImplementedError()
+
+    def _clear_all_cluster(self, namespace: str, sys_id: str = None, module_id: str = None, server_id: str = None) -> bool:
+        """
+        清空所有集群信息(仅管理使用)
+
+        @param {str} namespace - 服务注册所在的命名空间, 可以实现不同环境或项目的软隔离
+        @param {str} sys_id=None - 系统标识(标准为5位字符), 不传代表获取上一级的所有信息
+        @param {str} module_id=None - 模块标识(标准为3位字符), 不传代表获取上一级的所有信息
+        @param {str} server_id=None - 服务实例序号(标准为2个字符, 建议为数字), 不传代表获取上一级的所有信息
+
+        @returns {bool} - 处理结果
         """
         raise NotImplementedError()
