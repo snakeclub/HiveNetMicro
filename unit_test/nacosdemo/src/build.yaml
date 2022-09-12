@@ -1,0 +1,601 @@
+# ******************************************
+# build: 构建参数
+# name: 当前构建的标识(仅用于区分不同构建配置)
+# type: 构建类型, 指定为HiveNetMicro
+# source: str, 构建源文件目录, 为当前构建配置文件所在目录的相对目录
+# output: str, 构建结果输出目录, 为当前构建配置文件所在目录的相对目录
+# successTips: list, 构建成功后的提示内容, 按行显示列表内容
+# ******************************************
+build:
+  name: 'unit_test_nacos_demo'
+  type: HiveNetMicro
+  source: ~
+  output: "../build"
+  successTips:
+    - "以下操作需进入到nacosdemo目录下操作"
+    - "构建应用: python src/build.py"
+    - "测试应用: python test_service.py"
+
+# ******************************************
+# dirs: 要创建的文件夹
+# Item Key: 要在输出目录下创建的文件夹, 支持使用"/"创建多级文件夹
+#   clear: bool, 文件夹已存在的情况是否清空目录, 默认为false
+#   copy: list, 复制的文件或目录清单, 每项为一个复制操作, 支持以下两种配置方式
+#     src_file: str, 直接传入要复制文件的路径(为源文件目录的相对目录), 直接复制到当前配置文件夹的根目录下
+#     ["src_file", "dest_file"]: list, 第1个参数为要复制的文件路径, 第2个参数为要保存的文件路径(当前配置文件夹的相对路径)
+#   copyAll: list, 要复制所有子文件及子文件夹的目录清单，每项为一个复制操作，支持以下两种配置方式
+#     src_dir: str, 直接传入要复制的文件夹(为源文件目录的相对目录), 直接将该文件夹的所有子文件和子目录复制到当前配置文件夹的根目录下
+#     ["src_dir", "dest_dir"]: list, 第1个参数为要复制文件夹, 第2个参数为要保存的文件夹(当前配置文件夹的相对路径)
+# ******************************************
+dirs:
+  config:
+    clear: true
+  logs:
+    clear: true
+  plugins:
+  i18n:
+  services:
+    clear: true
+  tasks:
+    clear: true
+
+# ******************************************
+# configTemplates: 配置文件模版生成处理
+# Item Key: 要复制的配置文件模版名(不包含.yaml后缀)
+#   key: 模版文件下的配置key, 如果有多级可以按该结构设置多层, 最末级的值为list, 为对应配置项下要添加的配置模版清单
+#     注: key除了可以按结构设置多层以外, 也可以支持yaml_path的模式, 例如 root/key1/key2[0]这种形式
+#     - 配置项参数字典
+#       template: str, 配置的模版文件名(不包含.yaml后缀)
+#       remplate_path: str, 选填, 配置的模版文件路径, 如果不设置代表按配置层级路径获取, 该路径为编译器模版路径的相对路径
+#       config_name: str, 选填, 配置项的key标识, 如果不设置代表直接使用模版名
+# ******************************************
+configTemplates:
+  configCenter:
+    configs:
+      -
+        template: nacos
+  application:
+    web_servers:
+      -
+        template: sanic
+    namings:
+      -
+        template: nacos
+    opentracings:
+      -
+        template: jaeger
+    loggers:
+      -
+        template: sysLogger
+        config_name: sysLogger  # 指定为默认的sysLogger, 则其他模版无需修改配置
+      -
+        template: sysLogger
+        config_name: serviceLogger  # 指定为默认的serviceLogger, 则其他模版无需修改配置
+    inf_loggings:
+      -
+        template: CommonInfLogging
+      -
+        template: ServiceRemoteCallInfLogging
+    server_formaters:
+      -
+        template: SanicCommonFormater
+      -
+        template: SanicHiveNetStdIntfFormater
+    caller_formaters:
+      -
+        template: HttpCommonCallerFormater
+      -
+        template: AioHttpCommonCallerFormater
+      -
+        template: AioHttpHiveNetStdIntfCallerFormater
+  adapters:
+    adapters:
+      -
+        template: serial_number_standalone
+        config_name: serial_number
+  services:
+  remoteServices:
+
+# ******************************************
+# configSetValues: 配置文件值合并处理
+# Item Key: 要设置的配置文件名(不包含.yaml后缀)
+#   文件名下是配置文件下对应的配置值设置, 结构与配置文件相同, 采用的是合并的方式
+# ******************************************
+configSetValues:
+  configCenter:
+    base_config:
+      env: dev
+      center_type: nacos
+      namespace: HiveNetMicroConfig
+      prefix: server01
+
+  application:
+    base_config:
+      app_name: "demoNacos"
+      namespace: HiveNetMicroService
+      host: "127.0.0.1"
+      port: 9090
+
+      sys_logger: sysLogger
+      service_logger: serviceLogger
+      default_web_server: sanic
+      naming: nacos
+      tracer: jaeger
+
+      caller_formaters:
+        - HttpCommonCallerFormater
+        - AioHttpCommonCallerFormater
+        - AioHttpHiveNetStdIntfCallerFormater
+
+    loggers:
+      sysLogger:
+        logfile_path: sys.log
+      serviceLogger:
+        logfile_path: service.log
+
+    web_servers:
+      sanic:
+        server_formaters:
+          - SanicHiveNetStdIntfFormater
+          - SanicCommonFormater
+
+  services:
+    services:
+      # 模块中直接定义的函数, 使用通用的报文转换适配器
+      localDemoMainFuncNoPara:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        uri: /api/local_demo/common/main_func_no_para
+        plugin:
+          function: main_func_no_para
+        naming:
+          service_name: localDemoMainFuncNoPara
+          group_name: sys
+          metadata:
+            protocol: http
+            uri: /api/local_demo/common/main_func_no_para
+          naming_config:
+            nacos:
+              weight: 1.0
+
+      localDemoMainFuncWithArgs:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        uri: "api/local_demo/common/main_func_with_args/<para1>/<para2:int>"
+        web_server:
+          sanic:
+            # http支持方法
+            methods:
+              - POST
+        plugin:
+          function: main_func_with_args
+
+      localDemoMainFuncWithKwargs:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        uri: api/local_demo/common/main_func_with_kwargs
+        kv_type_trans_mapping:
+          kwpara2: int
+        plugin:
+          function: main_func_with_kwargs
+
+      localDemoMainFuncWithParas:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        uri: "api/local_demo/common/main_func_with_paras/<para1>/<para2:int>"
+        kv_type_trans_mapping:
+          kwpara2: int
+        plugin:
+          function: main_func_with_paras
+
+      localDemoMainFuncWithException:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        uri: /api/local_demo/common/main_func_with_exception
+        plugin:
+          function: main_func_with_exception
+
+
+      localDemoMainFuncRemoteCall:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        uri: "api/local_demo/common/main_func_remote_call/<para1>"
+        web_server:
+          sanic:
+            # http支持方法
+            methods:
+              - POST
+        plugin:
+          function: main_func_remote_call
+
+      # 模块中直接定义的函数, 使用标准接口规范的报文转换适配器
+      stdLocalDemoMainFuncNoPara:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        uri: /api/local_demo/std/main_func_no_para
+        plugin:
+          function: main_func_no_para
+
+      stdLocalDemoMainFuncWithArgs:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        uri: "api/local_demo/std/main_func_with_args/<para1>/<para2:int>"
+        web_server:
+          sanic:
+            # http支持方法
+            methods:
+              - POST
+        plugin:
+          function: main_func_with_args
+
+        trace_options:
+          self_baggage_paras:
+            query: "network:query"
+            new_test: "const:add_new_test"
+
+      stdLocalDemoMainFuncWithKwargs:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        uri: api/local_demo/std/main_func_with_kwargs
+        kv_type_trans_mapping:
+          kwpara2: int
+        plugin:
+          function: main_func_with_kwargs
+
+      stdLocalDemoMainFuncWithParas:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        uri: "api/local_demo/std/main_func_with_paras/<para1>/<para2:int>"
+        kv_type_trans_mapping:
+          kwpara2: int
+        plugin:
+          function: main_func_with_paras
+
+      stdLocalDemoMainFuncWithException:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        uri: /api/local_demo/std/main_func_with_exception
+        plugin:
+          function: main_func_with_exception
+
+      stdLocalDemoMainFuncRemoteCall:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        uri: "api/local_demo/std/main_func_remote_call/<para1>"
+        web_server:
+          sanic:
+            # http支持方法
+            methods:
+              - POST
+        plugin:
+          function: main_func_remote_call
+
+      # 静态类函数
+      localDemoStaticClassSFuncWithParas:
+        common_config:
+          - allCommon
+          - localDemoStaticClassFuncCommon
+        uri: "api/local_demo/common/static_class_s_func_with_paras/<para1>/<para2:int>"
+        kv_type_trans_mapping:
+          kwpara2: int
+        plugin:
+          function: static_func_with_paras
+
+      localDemoStaticClassCFuncWithParas:
+        common_config:
+          - allCommon
+          - localDemoStaticClassFuncCommon
+        uri: "api/local_demo/common/static_class_c_func_with_paras/<para1>/<para2:int>"
+        kv_type_trans_mapping:
+          kwpara2: int
+        plugin:
+          function: class_func_with_paras
+
+      # 需实例化的类函数
+      localDemoObjectClassSFuncWithParas:
+        common_config:
+          - allCommon
+          - localDemoObjectClassFuncCommon
+        uri: "api/local_demo/common/object_class_s_func_with_paras/<para1>/<para2:int>"
+        kv_type_trans_mapping:
+          kwpara2: int
+        plugin:
+          function: static_func_with_paras
+
+      localDemoObjectClassCFuncWithParas:
+        common_config:
+          - allCommon
+          - localDemoObjectClassFuncCommon
+        uri: "api/local_demo/common/object_class_c_func_with_paras/<para1>/<para2:int>"
+        kv_type_trans_mapping:
+          kwpara2: int
+        plugin:
+          function: class_func_with_paras
+
+      localDemoObjectClassMFuncWithParas:
+        common_config:
+          - allCommon
+          - localDemoObjectClassFuncCommon
+        uri: "api/local_demo/common/object_class_m_func_with_paras/<para1>/<para2:int>"
+        kv_type_trans_mapping:
+          kwpara2: int
+        plugin:
+          function: member_func_with_paras
+
+    common_config:
+      allCommon:
+        sys_id: Local
+        module_id: M01
+        enable_service: true
+        allow_local_call: true
+        enable_tracer: true
+        inf_logging: CommonInfLogging
+        inf_check: ~
+        formater: SanicCommonFormater
+        web_server:
+          sanic:
+            # http支持方法
+            methods:
+              - GET
+
+        naming:
+          group_name: sys
+          metadata:
+            protocol: http
+          naming_config:
+            nacos:
+              weight: 1.0
+
+        trace_options:
+          self_tag_paras:
+            http.method: "network:method"
+            http.url: "network:url"
+            host: "network:host"
+            span.kind: "const:server"
+            peer.ipv4: "network:ip"
+            peer.port: "network:port"
+            test_tag: "json:$.head.originSysId"
+          self_baggage_paras:
+            query: "network:query"
+          self_resp_tag_paras:
+            http.status_code: "host:status"
+            content_type: "head:Content-Type"
+            test_resp_tag: "json:$.head.errCode"
+
+      localDemoMainFuncCommon:
+        plugin:
+          path: ../../../common_services/demo_main.py
+          class: ~
+          instantiation: false
+          stand_alone: false
+
+      stdLocalDemoMainFuncCommon:
+        module_id: M02
+        formater: SanicHiveNetStdIntfFormater
+        plugin:
+          path: ../../../common_services/demo_main_std.py
+          class: ~
+          instantiation: false
+          stand_alone: false
+
+      localDemoStaticClassFuncCommon:
+        plugin:
+          path: ../../../common_services/demo_class.py
+          class: StaticClassService
+          instantiation: false
+          stand_alone: false
+
+      localDemoObjectClassFuncCommon:
+        plugin:
+          path: ../../../common_services/demo_class.py
+          class: ObjectClassService
+          instantiation: true
+          stand_alone: false
+
+  remoteServices:
+    services:
+      # 使用通用的报文转换适配器
+      localDemoMainFuncNoPara:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        service_name: localDemoMainFuncNoPara
+        uri: api/local_demo/common/main_func_no_para
+
+      localDemoMainFuncWithArgs:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        service_name: localDemoMainFuncWithArgs
+        uri: "api/local_demo/common/main_func_with_args/<para1>/<para2:int>"
+        network:
+          method: POST
+
+      localDemoMainFuncWithKwargs:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        service_name: localDemoMainFuncWithKwargs
+        uri: api/local_demo/common/main_func_with_kwargs
+
+      localDemoMainFuncWithParas:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        service_name: localDemoMainFuncWithParas
+        uri: "api/local_demo/common/main_func_with_paras/<para1>/<para2:int>"
+
+      localDemoMainFuncWithException:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        service_name: localDemoMainFuncWithException
+        uri: api/local_demo/common/main_func_with_exception
+        formater: HttpCommonCallerFormater
+
+      localDemoMainFuncRemoteCall:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        service_name: localDemoMainFuncRemoteCall
+        uri: "api/local_demo/common/main_func_remote_call/<para1>"
+        network:
+          method: POST
+
+      # 使用标准报文规范的报文转换适配器
+      stdLocalDemoMainFuncNoPara:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        service_name: stdLocalDemoMainFuncNoPara
+        uri: api/local_demo/std/main_func_no_para
+
+      stdLocalDemoMainFuncWithArgs:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        service_name: stdLocalDemoMainFuncWithArgs
+        uri: "api/local_demo/std/main_func_with_args/<para1>/<para2:int>"
+        network:
+          method: POST
+
+      stdLocalDemoMainFuncWithKwargs:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        service_name: stdLocalDemoMainFuncWithKwargs
+        uri: api/local_demo/std/main_func_with_kwargs
+
+      stdLocalDemoMainFuncWithParas:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        service_name: stdLocalDemoMainFuncWithParas
+        uri: "api/local_demo/std/main_func_with_paras/<para1>/<para2:int>"
+
+      stdLocalDemoMainFuncWithException:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        service_name: stdLocalDemoMainFuncWithException
+        uri: api/local_demo/std/main_func_with_exception
+
+      stdLocalDemoMainFuncRemoteCall:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        service_name: stdLocalDemoMainFuncRemoteCall
+        uri: "api/local_demo/std/main_func_remote_call/<para1>"
+        network:
+          method: POST
+
+      # 静态类函数
+      localDemoStaticClassSFuncWithParas:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        service_name: localDemoStaticClassSFuncWithParas
+        uri: "api/local_demo/common/static_class_s_func_with_paras/<para1>/<para2:int>"
+
+      localDemoStaticClassCFuncWithParas:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        service_name: localDemoStaticClassCFuncWithParas
+        uri: "api/local_demo/common/static_class_c_func_with_paras/<para1>/<para2:int>"
+
+      # 实例类函数
+      localDemoObjectClassSFuncWithParas:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        service_name: localDemoObjectClassSFuncWithParas
+        uri: "api/local_demo/common/object_class_s_func_with_paras/<para1>/<para2:int>"
+
+      localDemoObjectClassCFuncWithParas:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        service_name: localDemoObjectClassCFuncWithParas
+        uri: "api/local_demo/common/object_class_c_func_with_paras/<para1>/<para2:int>"
+
+      localDemoObjectClassMFuncWithParas:
+        common_config:
+          - allCommon
+          - localDemoMainFuncCommon
+        service_name: localDemoObjectClassMFuncWithParas
+        uri: "api/local_demo/common/object_class_m_func_with_paras/<para1>/<para2:int>"
+
+    common_config:
+      allCommon:
+        group_name: sys
+        enable_tracer: true
+        protocol: http
+        inf_logging: ServiceRemoteCallInfLogging
+        headers:
+          content-type: "application/json;charset=utf-8;"
+        naming: ~
+        naming_subscribe_interval: 5.0
+
+      localDemoMainFuncCommon:
+        network:
+          method: GET
+        local_call_first: true
+        formater: AioHttpCommonCallerFormater
+
+      stdLocalDemoMainFuncCommon:
+        network:
+          method: GET
+        local_call_first: true
+        formater: AioHttpHiveNetStdIntfCallerFormater
+
+# ******************************************
+# noSqlDbInit: 处理noSql数据库初始化
+# Item Key: 要设置的数据库标识(adapters上配置的数据库标识)
+#   Deal Key: 在数据库下要执行的操作标识, 每个标识将生成一个对应的操作脚本
+#     type: str, 操作类型, db-初始化数据库, collection-初始化集合, data-初始化数据
+#
+#     # db-初始化数据库的相关参数
+#     updateToDriverOpts: bool, 是否更新到驱动的初始化参数, 默认为true
+#     existed: str, 当数据库已存在时的处理方式, none-不处理(默认), rebuild-重建
+#     deals: list, 要处理的初始化列表, 每个为一个数据库初始化
+#       dbName: str, 要创建的数据库名
+#       comment: str, 数据库注释, 可不传
+#       args: list, 创建数据库的args参数, 可不传
+#       kwargs: dict, 创建数据库的kwargs参数, 可不传
+#       indexOnly: bool, 添加到nosql驱动的初始化参数时, 是否仅用于索引而不在装载驱动时自动创建, 默认为true
+#
+#     # collection-初始化集合的相关参数
+#     updateToDriverOpts: bool, 是否更新到驱动的初始化参数, 默认为true
+#     existed: str,当表已存在时的处理方式, none-不处理(默认), rebuild-重建表
+#     deals: list, 要处理的初始化列表, 每个列表为一个初始化文件配置, 格式如下:
+#       modeType: str, 初始化文件格式, 默认为excel
+#       file: str, 初始化文件路径(包含文件名), 为源目录的相对路径
+#       indexOnly: bool, 添加到nosql驱动的初始化参数时, 是否仅用于索引而不在装载驱动时自动创建, 默认为true
+#       dbFilter: list, 初始化文件中, 指定要生成的数据库清单, 如果不设置代表处理所有数据库
+#       collectionFilter: list, 初始化文件中, 指定要生成的集合清单, 如果不设置代表处理所有集合
+#       dbMapping: dict, 数据库映射, 指定将初始化文件中的数据库名映射为特定数据库名, key-初始化文件中数据库名, val-要导入的真正数据库名
+#         注: 可以将key指定为*, 代表将所有匹配不到的的数据库名都转换为该key为*的数据库名
+#
+#     # data-初始化数据
+#     deals: list, 要处理的初始化列表, 每个列表为一个初始化文件配置, 格式如下:
+#       modeType: str, 初始化文件格式, 默认为excel
+#       file: str, 初始化文件路径(包含文件名), 为源目录的相对路径
+#       dbFilter: list, 初始化文件中, 指定要生成的数据库清单, 如果不设置代表处理所有数据库
+#       collectionFilter: list, 初始化文件中, 指定要生成的集合清单, 如果不设置代表处理所有集合
+#       dbMapping: dict, 数据库映射, 指定将初始化文件中的数据库名映射为特定数据库名, key-初始化文件中数据库名, val-要导入的真正数据库名
+#         注: 可以将key指定为*, 代表将所有匹配不到的的数据库名都转换为该key为*的数据库名
+# ******************************************
+noSqlDbInit:

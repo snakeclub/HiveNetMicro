@@ -17,7 +17,7 @@ import sys
 from logging import Logger
 # 根据当前文件路径将包路径纳入, 在非安装的情况下可以引用到
 sys.path.append(os.path.abspath(os.path.join(
-    os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir)))
+    os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir, os.path.pardir, os.path.pardir)))
 from HiveNetMicro.core.global_manager import GlobalManager
 from HiveNetMicro.interface.platform import Platform
 
@@ -75,15 +75,6 @@ def main_func_with_paras(request: dict, para1: str, para2: int, kwpara1: str = '
             'head': {'errCode': '00000', 'errMsg': 'Success'},
             'body': {'fun': 'std.main_func_with_paras', 'args': [para1, para2], 'kwargs': {'kwpara1': kwpara1, 'kwpara2': kwpara2}}
         }}
-
-
-def main_func_with_exception(request: dict):
-    """
-    抛出异常的函数
-
-    @param {dict} request - 请求信息
-    """
-    raise RuntimeError('test')
 
 
 async def main_func_remote_call(request: dict, para1: str):

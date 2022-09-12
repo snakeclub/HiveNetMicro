@@ -1,0 +1,52 @@
+  sysLogger:
+    enable: true
+    logger_name: SysConsoleAndFile
+    logfile_path: sys.log
+    config_json_str: |-
+      {
+        "version": 1,
+        "disable_existing_loggers": false,
+        "formatters": {
+            "simpleFormatter": {
+                "format": "[%(asctime)s.%(millisecond)s][%(levelname)s][PID:%(process)d][TID:%(thread)d][FILE:%(filename)s][FUN:%(funcName)s]%(message)s",
+                "datefmt": "%Y-%m-%d %H:%M:%S"
+            }
+        },
+        "handlers": {
+            "ConsoleHandler": {
+                "class": "logging.StreamHandler",
+                "level": "DEBUG",
+                "formatter": "simpleFormatter",
+                "stream": "ext://sys.stdout"
+            },
+            "SysFileHandler": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "level": "INFO",
+                "formatter": "simpleFormatter",
+                "filename": "{$log_file_path$}",
+                "maxBytes": 10485760,
+                "backupCount": 1000,
+                "encoding": "utf8"
+            }
+        },
+        "loggers": {
+            "Console": {
+                "level": "DEBUG",
+                "handlers": ["ConsoleHandler"]
+            },
+            "SysFile": {
+                "level": "INFO",
+                "handlers": ["SysFileHandler"],
+                "propagate": "no"
+            },
+            "SysConsoleAndFile": {
+                "level": "DEBUG",
+                "handlers": ["ConsoleHandler", "SysFileHandler"],
+                "propagate": "no"
+            }
+        },
+        "root": {
+            "level": "DEBUG",
+            "handlers": []
+        }
+      }

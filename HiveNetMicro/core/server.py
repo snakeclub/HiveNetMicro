@@ -533,7 +533,16 @@ class ServerStarter(object):
         for _name, _config in self.services_config['services'].items():
             # 遍历初始化服务实例对象并添加路由
             self.sys_logger.info(_('Initialize service [$1] ...', _name))
-            _service_func = self.lib_loader.load_by_config(_config['plugin'], self.services_path, force_self_lib=True)
+            try:
+                _service_func = self.lib_loader.load_by_config(
+                    _config['plugin'], self.services_path, force_self_lib=True
+                )
+            except:
+                self.sys_logger.error(_(
+                    'Initialize service [$1] error: [path:$2] [plugin:$3]', _name, self.services_path,
+                    str(_config['plugin'])
+                ))
+                raise
 
             # 添加报文处理的修饰符
             _service_func = self.get_wrapped_inf_deal(_service_func, service_config=_config)

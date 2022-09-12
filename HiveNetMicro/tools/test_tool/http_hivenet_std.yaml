@@ -1,0 +1,14 @@
+# HiveNet标准接口的http测试的默认参数
+# 连接参数
+conn_config:
+  protocol: http
+  host: "127.0.0.1"
+  port: 9091
+
+# 全局header
+headers:
+  Content-Type: "application/json;charset=utf-8;"
+
+std_request:
+  head: {}
+

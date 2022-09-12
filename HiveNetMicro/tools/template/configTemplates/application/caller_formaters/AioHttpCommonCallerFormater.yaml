@@ -1,0 +1,15 @@
+  AioHttpCommonCallerFormater:
+    # 异步模式的Http调用的通用报文格式转换插件
+    plugin:
+      path: caller_formater_http.py
+      class: AioHttpCommonCallerFormater
+      instantiation: True
+      init_kwargs:
+        init_config:
+          # 超时时间, 单位为秒
+          timeout: 60.0
+          # 协议映射字典
+          protocol_mapping:
+            https:
+              - https
+        logger_id: sysLogger

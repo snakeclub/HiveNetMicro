@@ -1,0 +1,16 @@
+# ******************************************
+# 构建工具配置
+# Item Key: 构建类型标识
+#   plugins: str, 该构建类型的自有管道插件目录(构建工具目录的相对路径)
+#   pipeline: str, 构建管道配置文件(构建工具目录的相对路径)
+#   selfConfig: dict, 不同类型构建工具的自有配置参数
+# ******************************************
+HiveNetMicro:
+  plugins: HiveNetMicroPlugin/plugins
+  pipeline: HiveNetMicroPlugin/build_pipeline.yaml
+  selfConfig:
+    # ******************************************
+    # configTemplatesPath: 配置模版路径
+    # ******************************************
+    configTemplatesPath: ../template/configTemplates
+    noSqlDbInitScriptPath: ../template/noSqlDbInitScript

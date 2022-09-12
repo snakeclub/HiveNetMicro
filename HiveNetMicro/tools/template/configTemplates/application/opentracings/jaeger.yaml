@@ -1,0 +1,47 @@
+  jaeger:
+    plugin:
+      path: tracer_jaeger.py
+      class: JaegerTracerAdapter
+      instantiation: True
+      init_kwargs:
+        tracer_config:
+          # ******************************************
+          # jaeger支持的配置参数
+          #   config: dict, jaeger-client的初始化配置
+          #     local_agent: dict, 指定JaegerAgent的配置
+          #         reporting_host: str, JaegerAgent的访问ip地址, 建议装在本地, 为'127.0.0.1'
+          #         reporting_port: int, JaegerAgent的访问端口, 例如6831
+          #         sampling_port: int, JaegerAgent的采用策略获取端口, 例如5778
+          #         注意: jaeger官方建议为了保证数据可靠性, JaegerClient和JaegerAgent运行在同一台主机内
+          #     sampler: dict, 客户端采样策略配置
+          #         type: str, 采样类型, 默认为'const'
+          #         param: float, 采样参数
+          #         注: 不同的采样类型及参数说明如下:
+          #         'const' - 常量, 始终对所有traces做出相同的决定, 采样所有跟踪(param=1), 全部不采样(sampler.param=0)
+          #         'probabilistic' - 概率, 按指定概率随机采样, 例如param=0.1的情况下, 将在10条迹线中大约采样1条
+          #         'ratelimiting' - 使用漏斗速率限制器来确保以一定的恒定速率对轨迹进行采样, 例如param=2.0时, 它将以每秒2条迹线的速率对请求进行采样
+          #         'remote' - 采样器会向Jaeger代理咨询有关在当前服务中使用的适当采样策略
+          #     tags: dict, 当前tracer固定添加到所有span的tags信息(在Process信息中查看)
+          #     reporter_flush_interval: float, tracer信息提交缓存的间隔时间, 单位为秒, 默认为1秒
+          #     sampling_refresh_interval: float, sampler为remote的情况下, 轮询jaeger agent以获取适当采样策略的频率, 单位为秒, 默认为60
+          #     generate_128bit_trace_id: bool, 生成128位的trace_id, 默认为False
+          #     trace_id_header: str, http头中定义的trace_id项名称, 默认为'uber-trace-id'
+          #     baggage_header_prefix: str, http头中记录baggage项的前缀字符串, 默认为'uberctx-'
+          #     propagation str, Span传播上下文使用的标准格式, 默认为'jaeger', 也支持'b3', 'w3c'
+          #     reporter_batch_size: int, 报告批量打包发送的包大小, 默认为10
+          #     reporter_queue_size: int, 报告队列大小限制, 默认为100
+          #   logging: bool, 是否启用日志, 默认为False
+          #   service_name: str, 追踪日志应用名, 如果不传默认使用当前微服务app配置的应用名
+          #   validate: bool, 默认为true
+          #   use_prometheus_metrics: bool, 是否启用开源监控系统Prometheus的指标, 默认为false
+          # ******************************************
+          config:
+            logging: true
+            local_agent:
+              reporting_host: "127.0.0.1"
+              reporting_port: 6831
+          validate: true
+          use_prometheus_metrics: true
+        trace_options:
+          trace_all_exception: true
+        logger_id: sysLogger

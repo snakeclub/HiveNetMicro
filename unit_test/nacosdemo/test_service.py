@@ -26,7 +26,7 @@ from HiveNetCore.utils.test_tool import TestTool
 sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__), os.path.pardir, os.path.pardir)))
 from HiveNetMicro.core.server import ServerStarter
-from HiveNetMicro.plugins.adapter.config_nacos import NacosConfigAdapter
+from HiveNetMicro.plugins.config_nacos import NacosConfigAdapter
 
 
 __MOUDLE__ = 'test_service'  # 模块名
@@ -49,7 +49,9 @@ def start_server_thread_fun():
         _start_config['port'] = int(_start_config['port'])
 
     # 测试所需参数
-    _start_config['base_path'] = os.path.abspath(os.path.dirname(__file__))
+    _start_config['base_path'] = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), 'build'
+    ))
 
     # 初始化服务启动器
     starter = ServerStarter(_start_config)
@@ -78,6 +80,7 @@ def setUpModule():
         _adapter.remove_config('server01-services.yaml', group='sys')
     except:
         print('remove server config error: %s' % traceback.format_exc())
+        raise
 
     # 启动服务线程
     _thread = threading.Thread(

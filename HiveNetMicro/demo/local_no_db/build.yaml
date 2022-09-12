@@ -1,0 +1,253 @@
+# ******************************************
+# build: 构建参数
+# name: 当前构建的标识(仅用于区分不同构建配置)
+# type: 构建类型, 指定为HiveNetMicro
+# source: str, 构建源文件目录, 为当前构建配置文件所在目录的相对目录
+# output: str, 构建结果输出目录, 为当前构建配置文件所在目录的相对目录
+# successTips: list, 构建成功后的提示内容, 按行显示列表内容
+# ******************************************
+build:
+  name: local_no_db
+  type: HiveNetMicro
+  source: ~
+  output: "build"
+  successTips:
+    - "启动服务命令(跳转到HiveNetMicro根目录):"
+    - "python start_service.py base_path=\"demo/local_no_db/build\""
+    - ""
+    - "测试命令(跳转到HiveNetMicro的 tools/test_tool 目录)"
+    - "python http_test.py url=api/demo/local_no_db/main_func_no_para port=9091 config_file=http_hivenet_std.yaml"
+    - "python http_test.py url=api/demo/local_no_db/main_func_with_args/p1/10 request=\"{\\\"body\\\": \\\"test stdLocalDemoMainFuncWithArgs with local\\\"}\" port=9091 config_file=http_hivenet_std.yaml"
+    - "python http_test.py url=\"api/demo/local_no_db/main_func_with_kwargs?kwpara1=abcd&kwpara2=11\" request=\"{\\\"body\\\": \\\"test stdLocalDemoMainFuncWithKwargs with local\\\"}\" port=9091 config_file=http_hivenet_std.yaml"
+    - "python http_test.py url=\"api/demo/local_no_db/main_func_with_paras/p1/13?kwpara1=abcd&kwpara2=11\" request=\"{\\\"body\\\": \\\"test stdLocalDemoMainFuncWithParas with local\\\"}\" port=9091 config_file=http_hivenet_std.yaml"
+    - "python http_test.py url=api/local_demo/std/main_func_remote_call/p1 request=\"{\\\"body\\\": \\\"test stdLocalDemoMainFuncRemoteCall with service\\\"}\" port=9091 config_file=http_hivenet_std.yaml"
+
+# ******************************************
+# dirs: 要创建的文件夹
+# Item Key: 要在输出目录下创建的文件夹, 支持使用"/"创建多级文件夹
+#   clear: bool, 文件夹已存在的情况是否清空目录, 默认为false
+#   copy: list, 复制的文件或目录清单, 每项为一个复制操作, 支持以下两种配置方式
+#     src_file: str, 直接传入要复制文件的路径(为源文件目录的相对目录), 直接复制到当前配置文件夹的根目录下
+#     ["src_file", "dest_file"]: list, 第1个参数为要复制的文件路径, 第2个参数为要保存的文件路径(当前配置文件夹的相对路径)
+#   copyAll: list, 要复制所有子文件及子文件夹的目录清单，每项为一个复制操作，支持以下两种配置方式
+#     src_dir: str, 直接传入要复制的文件夹(为源文件目录的相对目录), 直接将该文件夹的所有子文件和子目录复制到当前配置文件夹的根目录下
+#     ["src_dir", "dest_dir"]: list, 第1个参数为要复制文件夹, 第2个参数为要保存的文件夹(当前配置文件夹的相对路径)
+# ******************************************
+dirs:
+  config:
+    clear: true
+  logs:
+    clear: true
+  plugins:
+  i18n:
+  services:
+    clear: true
+    copyAll:
+      - "services"
+  tasks:
+    clear: true
+
+# ******************************************
+# configTemplates: 配置文件模版生成处理
+# Item Key: 要复制的配置文件模版名(不包含.yaml后缀)
+#   key: 模版文件下的配置key, 如果有多级可以按该结构设置多层, 最末级的值为list, 为对应配置项下要添加的配置模版清单
+#     注: key除了可以按结构设置多层以外, 也可以支持yaml_path的模式, 例如 root/key1/key2[0]这种形式
+#     - 配置项参数字典
+#       template: str, 配置的模版文件名(不包含.yaml后缀)
+#       remplate_path: str, 选填, 配置的模版文件路径, 如果不设置代表按配置层级路径获取, 该路径为编译器模版路径的相对路径
+#       config_name: str, 选填, 配置项的key标识, 如果不设置代表直接使用模版名
+# ******************************************
+configTemplates:
+  configCenter:
+  application:
+    web_servers:
+      -
+        template: sanic
+        config_name: sanic_test
+    server_formaters:
+      -
+        template: SanicHiveNetStdIntfFormater
+    caller_formaters:
+      -
+        template: AioHttpHiveNetStdIntfCallerFormater
+  adapters:
+    adapters:
+      -
+        template: serial_number_standalone
+        config_name: serial_number
+  services:
+  remoteServices:
+
+# ******************************************
+# configSetValues: 配置文件值合并处理
+# Item Key: 要设置的配置文件名(不包含.yaml后缀)
+#   文件名下是配置文件下对应的配置值设置, 结构与配置文件相同, 采用的是合并的方式
+# ******************************************
+configSetValues:
+  configCenter:
+    base_config:
+      env: dev
+      namespace: HiveNetMicroDemoLocalNoDbConfig
+
+  application:
+    base_config:
+      sys_id: Demo1
+      module_id: "000"
+      app_name: DemoLocalNoDb
+      namespace: HiveNetMicroServiceDemoLocalNoDb
+      port: 9091
+      default_web_server: sanic_test
+
+      caller_formaters:
+        - AioHttpHiveNetStdIntfCallerFormater
+    web_servers:
+      sanic_test:
+        server_formaters:
+          - SanicHiveNetStdIntfFormater
+
+  services:
+    services:
+      stdLocalDemoMainFuncNoPara:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        uri: "api/demo/local_no_db/main_func_no_para"
+        plugin:
+          function: main_func_no_para
+
+      stdLocalDemoMainFuncWithArgs:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        uri: "api/demo/local_no_db/main_func_with_args/<para1>/<para2:int>"
+        web_server:
+          sanic:
+            # http支持方法
+            methods:
+              - POST
+        plugin:
+          function: main_func_with_args
+
+      stdLocalDemoMainFuncWithKwargs:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        uri: "api/demo/local_no_db/main_func_with_kwargs"
+        kv_type_trans_mapping:
+          kwpara2: int
+        plugin:
+          function: main_func_with_kwargs
+
+      stdLocalDemoMainFuncWithParas:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        uri: "api/demo/local_no_db/main_func_with_paras/<para1>/<para2:int>"
+        kv_type_trans_mapping:
+          kwpara2: int
+        plugin:
+          function: main_func_with_paras
+
+      stdLocalDemoMainFuncRemoteCall:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        uri: "api/local_demo/std/main_func_remote_call/<para1>"
+        web_server:
+          sanic:
+            # http支持方法
+            methods:
+              - POST
+        plugin:
+          function: main_func_remote_call
+
+    common_config:
+      allCommon:
+        sys_id: Demo1
+        module_id: "000"
+        enable_service: true
+        allow_local_call: true
+        enable_tracer: false
+        inf_logging: ~
+        inf_check: ~
+        formater: SanicHiveNetStdIntfFormater
+
+        web_server:
+          sanic_test:
+            # http支持方法
+            methods:
+              - GET
+
+      stdLocalDemoMainFuncCommon:
+        plugin:
+          path: demo_main_std.py
+          class: ~
+          instantiation: false
+          stand_alone: false
+
+  remoteServices:
+    services:
+      stdLocalDemoMainFuncWithArgs:
+        common_config:
+          - allCommon
+          - stdLocalDemoMainFuncCommon
+        service_name: stdLocalDemoMainFuncWithArgs
+        uri: "api/demo/local_no_db/main_func_with_args/<para1>/<para2:int>"
+        network:
+          method: POST
+
+    common_config:
+      allCommon:
+        group_name: ~
+        protocol: http
+        inf_logging: ~
+        headers:
+          content-type: "application/json;charset=utf-8;"
+        ip: "127.0.0.1"
+        port: 9091
+
+      stdLocalDemoMainFuncCommon:
+        network:
+          method: GET
+        local_call_first: true
+        formater: AioHttpHiveNetStdIntfCallerFormater
+        is_fixed_config: true
+
+# ******************************************
+# noSqlDbInit: 处理noSql数据库初始化
+# Item Key: 要设置的数据库标识(adapters上配置的数据库标识)
+#   Deal Key: 在数据库下要执行的操作标识, 每个标识将生成一个对应的操作脚本
+#     type: str, 操作类型, db-初始化数据库, collection-初始化集合, data-初始化数据
+#
+#     # db-初始化数据库的相关参数
+#     updateToDriverOpts: bool, 是否更新到驱动的初始化参数, 默认为true
+#     existed: str, 当数据库已存在时的处理方式, none-不处理(默认), rebuild-重建
+#     deals: list, 要处理的初始化列表, 每个为一个数据库初始化
+#       dbName: str, 要创建的数据库名
+#       comment: str, 数据库注释, 可不传
+#       args: list, 创建数据库的args参数, 可不传
+#       kwargs: dict, 创建数据库的kwargs参数, 可不传
+#       indexOnly: bool, 添加到nosql驱动的初始化参数时, 是否仅用于索引而不在装载驱动时自动创建, 默认为true
+#
+#     # collection-初始化集合的相关参数
+#     updateToDriverOpts: bool, 是否更新到驱动的初始化参数, 默认为true
+#     existed: str,当表已存在时的处理方式, none-不处理(默认), rebuild-重建表
+#     deals: list, 要处理的初始化列表, 每个列表为一个初始化文件配置, 格式如下:
+#       modeType: str, 初始化文件格式, 默认为excel
+#       file: str, 初始化文件路径(包含文件名), 为源目录的相对路径
+#       indexOnly: bool, 添加到nosql驱动的初始化参数时, 是否仅用于索引而不在装载驱动时自动创建, 默认为true
+#       dbFilter: list, 初始化文件中, 指定要生成的数据库清单, 如果不设置代表处理所有数据库
+#       collectionFilter: list, 初始化文件中, 指定要生成的集合清单, 如果不设置代表处理所有集合
+#       dbMapping: dict, 数据库映射, 指定将初始化文件中的数据库名映射为特定数据库名, key-初始化文件中数据库名, val-要导入的真正数据库名
+#         注: 可以将key指定为*, 代表将所有匹配不到的的数据库名都转换为该key为*的数据库名
+#
+#     # data-初始化数据
+#     deals: list, 要处理的初始化列表, 每个列表为一个初始化文件配置, 格式如下:
+#       modeType: str, 初始化文件格式, 默认为excel
+#       file: str, 初始化文件路径(包含文件名), 为源目录的相对路径
+#       dbFilter: list, 初始化文件中, 指定要生成的数据库清单, 如果不设置代表处理所有数据库
+#       collectionFilter: list, 初始化文件中, 指定要生成的集合清单, 如果不设置代表处理所有集合
+#       dbMapping: dict, 数据库映射, 指定将初始化文件中的数据库名映射为特定数据库名, key-初始化文件中数据库名, val-要导入的真正数据库名
+#         注: 可以将key指定为*, 代表将所有匹配不到的的数据库名都转换为该key为*的数据库名
+# ******************************************
+noSqlDbInit:

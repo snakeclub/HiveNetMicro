@@ -1,7 +1,0 @@
-  CommonInfLogging:
-    plugin:
-      path: adapter/inf_logging_common.py
-      class: CommonInfLoggingAdapter
-      instantiation: True
-      init_kwargs:
-        logger_id: sysLogger

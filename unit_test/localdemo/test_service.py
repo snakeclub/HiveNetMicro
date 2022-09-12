@@ -45,7 +45,9 @@ def start_server_thread_fun():
         _start_config['port'] = int(_start_config['port'])
 
     # 测试所需参数
-    _start_config['base_path'] = os.path.abspath(os.path.dirname(__file__))
+    _start_config['base_path'] = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), 'build'
+    ))
 
     # 初始化服务启动器
     starter = ServerStarter(_start_config)

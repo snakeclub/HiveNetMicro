@@ -1,0 +1,12 @@
+  cache_redis:
+    # redis的缓存服务器适配器
+    adapter_type: Cache
+    plugin:
+      path: cache_redis.py
+      class: RedisCacheAdapter
+      instantiation: True
+      init_kwargs:
+        logger_id: sysLogger
+        redis_para:
+          host: "127.0.0.1"
+          port: 6379

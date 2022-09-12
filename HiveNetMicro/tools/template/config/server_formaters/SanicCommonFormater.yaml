@@ -1,9 +1,0 @@
-  SanicCommonFormater:
-    # 通用请求返回的Sanic服务端适配实现
-    plugin:
-      path: adapter/server_formater_sanic.py
-      class: SanicCommonServerFormater
-      instantiation: True
-      init_kwargs:
-        init_config: ~
-        logger_id: sysLogger
