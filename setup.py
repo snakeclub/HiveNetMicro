@@ -26,6 +26,7 @@ DEPENDENCIES = [
     'HiveNetConsole',
     'HiveNetSimpleSanic',
     'HiveNetNoSql',
+    'HiveNetBuildTool',
     'ruamel.yaml',
     'pyjsonpath',
     'nest_asyncio',

@@ -12,7 +12,7 @@
 @file build.py
 """
 import os
-from HiveNetMicro.tools.build_tool.build import BuildPipeline
+from HiveNetMicro.tools.build_tool.build import HiveNetMicroBuildPipeline
 
 
 if __name__ == '__main__':
@@ -21,8 +21,8 @@ if __name__ == '__main__':
         os.path.dirname(__file__), '{$=build.yaml$}'
     ))
     _cmd_opts = {}
-    _build_pipeline = BuildPipeline(
-        None, _build_file, _cmd_opts, None
+    _build_pipeline = HiveNetMicroBuildPipeline(
+        build_file=_build_file, cmd_opts=_cmd_opts
     )
 
     # 启动构建
