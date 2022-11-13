@@ -1,21 +1,25 @@
 # 编译管道配置
 "1":
-  name: 构建应用文件夹
+  name: BuildDirs
+  tips: 构建应用文件夹
   processor: ProcesserBuildDir
   context:
     current_key: dirs
 "2":
-  name: 构建配置文件模版
+  name: BuildConfigTemplates
+  tips: 构建配置文件模版
   processor: ProcesserBuildConfigTemplates
   context:
     current_key: configTemplates
 "3":
-  name: 配置文件设置值
+  name: SetConfigValues
+  tips: 配置文件设置值
   processor: ProcesserBuildConfigSetValues
   context:
     current_key: configSetValues
 "4":
-  name: 构建数据库初始化配置
+  name: BuildNoSQLDbInit
+  tips: 构建数据库初始化配置
   processor: ProcesserBuildNoSqlDbInit
   context:
     current_key: noSqlDbInit
